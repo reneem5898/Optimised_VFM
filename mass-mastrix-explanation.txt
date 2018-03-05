@@ -1,0 +1,10 @@
+Notes on lumped mass matrix versus consistent mass matrix in Abaqus:
+
+Theory Manual
+2.4.1
+v. 6.11
+
+The definition of the mass matrix introduced above is the consistent mass: the mass matrix obtained by consistent use of the interpolation. 
+The first-order elements in Abaqus all use lumped mass, where the mass matrix is a diagonal matrix. The lumped matrix is obtained by adding 
+each row of the consistent matrix onto the diagonal. For these first-order elements the lumped mass matrix gives more accurate results in 
+numerical experiments that calculate the natural frequencies of simple models.
