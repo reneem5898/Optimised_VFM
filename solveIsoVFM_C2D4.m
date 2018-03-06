@@ -1,4 +1,4 @@
-function [FK, FG, b, strain] = solveIsoVFM_C2D4(U, uVF, rho, omega, nodesSubZone, elemSubZone, globalNodeNums, GaussPoints)
+function [FK, FG, b, strain] = solveIsoVFM_C2D4(U, uVF, rho, omega, nodesSubZone, elemSubZone, globalNodeNums, GP)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This function calculates the RHS (b) and LHS (fk and fg) of equation 7 from
@@ -16,10 +16,10 @@ function [FK, FG, b, strain] = solveIsoVFM_C2D4(U, uVF, rho, omega, nodesSubZone
 %
 % Outputs: 1) fk & fg (LHS)
 %          2) b (RHS)
-%          3) strain - to validate against out put from Abaqus
+%          3) strain - to validate against output from Abaqus
 %
 % Written by: Renee Miller
-% Date: 19 July 2016
+% Date: 6 March 2018
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Nodal DOFs
@@ -27,7 +27,7 @@ DOF = size(nodesSubZone,2) - 1;
 
 % Zeta = integration points
 % w = weights
-switch GaussPoints
+switch GP
     case 1
         zeta = 0;
         w = 2;
@@ -54,7 +54,7 @@ elemNegJac = [];
 nodesPerElem = size(elemSubZone,2) - 1;
 
 % Variable to save strain at Gauss points (to comopare to Abaqus output)
-strain = zeros(size(elemSubZone,1)*size(zeta,1)*size(zeta,1)*size(zeta,1),7); % 7 = 1 element label + 6 strain components (e11, e22, e33, e12, e23, e13)
+strain = zeros(size(elemSubZone,1)*size(zeta,1)*size(zeta,1)*size(zeta,1),5); % 7 = 1 element label + 6 strain components (e11, e22, e33, e12, e23, e13)
 
 count = 0; % make counter to assign strain values
 
@@ -85,16 +85,15 @@ for i = 1:size(elemSubZone,1)
     % Get displacements for particular element using indices
     Ue = U(globalNodeIdcs);
     UeVF = uVF(localNodeIdcs);
-    
-    
-    
-    for k = 1:length(zeta)
-        n = zeta(k);
+
+    % Loop through gauss points
+    for j = 1:length(zeta)
+        n = zeta(j);
         
-        for l = 1:length(zeta)
-            m = zeta(l);
+        for k = 1:length(zeta)
+            m = zeta(k);
             
-            % Gauss integration coordinate = (m,n,o) %
+            % Gauss integration coordinate = (m,n) %
             
             % Shape functions
             N1 = 1/4*(1-m)*(1-n);
@@ -144,7 +143,7 @@ for i = 1:size(elemSubZone,1)
             for c = 1:nodesPerElem %Loop through number of nodes per element
                 Bi = [dNdXY(1,c)     0        ; ...
                       0            dNdXY(2,c) ; ...
-                      dNdXYZ(2,c)  dNdXYZ(1,c)];
+                      dNdXY(2,c)   dNdXY(1,c)];
                 B = [B Bi];
             end
             
@@ -155,7 +154,7 @@ for i = 1:size(elemSubZone,1)
             % Save strain from measured displacement field -
             % compare to Abaqus (CHECK)
             count = count + 1;
-            strain(count,:) = [i eV.'];
+            strain(count,:) = [i count eV.'];
             
             % Convert strains to square matrices
             e = [eV(1) 0.5*eV(3); ...
@@ -180,16 +179,16 @@ for i = 1:size(elemSubZone,1)
             acc = UeVF.'*rho*(omega^2)*sh*Ue*detJ;
             
             % Sum the weighted functions
-            A1_1 = A1_1 + w(l).*fk;
-            A2_1 = A2_1 + w(l).*fg;
-            B_1 = B_1 + w(l).*acc;
+            A1_1 = A1_1 + w(k).*fk;
+            A2_1 = A2_1 + w(k).*fg;
+            B_1 = B_1 + w(k).*acc;
             
         end
         
         % Sum the weighted functions
-        A1_2 = A1_2 + w(k).*A1_1;
-        A2_2 = A2_2 + w(k).*A2_1;
-        B_2 = B_2 + w(k).*B_1;
+        A1_2 = A1_2 + w(j).*A1_1;
+        A2_2 = A2_2 + w(j).*A2_1;
+        B_2 = B_2 + w(j).*B_1;
         
         % Clear the inner sums
         A1_1 = A1_1.*0;

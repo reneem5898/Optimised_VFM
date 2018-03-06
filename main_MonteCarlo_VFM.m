@@ -1,4 +1,4 @@
-function [Results] = main_MonteCarlo_VFM(modelDir, outDir, rho, freq, refParams, maxIter, varyStart, subzones, elemType, GaussianNoise, num_MonteCarlo, noiseType, fibreNoise)
+function main_MonteCarlo_VFM(modelDir, outDir, rho, freq, refParams, maxIter, varyStart, subzones, elemType, GaussianNoise, num_MonteCarlo, noiseType, fibreNoise)
 
 %% Optimised Virtual Fields Method %%
 

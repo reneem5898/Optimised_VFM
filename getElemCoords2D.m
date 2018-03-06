@@ -1,18 +1,17 @@
 function [X, Y] = getElemCoords2D(nodes, elems, elemNum)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Function returns vectors of X, Y and Z nodal coordinates for the nodes
+% Function returns vectors of X and Y nodal coordinates for the nodes
 % which make up the current element
 %
 % Inputs: 1) nodes - nodal coordinates (4 x # elements)
 %         2) elems - element connectivity
 %         3) elemNum - current element number
 %
-% Outputs: Vectors of X, Y, and Z coordinates (size depends on element type
-% - number of nodes per element)
+% Outputs: Vectors of X and Y coordinates that make up 2D element
 %
-% Renee Miller
-% 10 February 2017
+% Renee Miller (reneem5898@gmail.com)
+% Date modified: 6 March 2018
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 

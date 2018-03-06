@@ -85,8 +85,8 @@ z1 = zeros(size(A,1),size(A,1));
 LHS = [H A.'; A z1]; % Need .' rather than ' since A is complex - want just transpose, not conjugate transpose
 
 % Compile RHS
-%     Acl       %%%%%%%%% Arb %%%%%%%%%%%      Ak         Ag
-Zg = [rhs_Acl; 0 + 0*1i; 0 + 0*1i; 0 + 0*1i; 0 + 0*1i; 1.0 + 0.0*1i];
+%     Acl      %%%%%% Arb %%%%%%%      Ak         Ag
+Zg = [rhs_Acl; 0 + 0*1i; 0 + 0*1i; 0 + 0*1i; 1.0 + 0.0*1i];
 z2 = complex(zeros(size(H,1),1)); % Minimise H
 RHS = [z2; Zg];
 

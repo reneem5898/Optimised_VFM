@@ -1,4 +1,4 @@
-function [Ak, Ag, H, strain] = isoC2D4(U, nodesSubZone, elemSubZone, globalNodeNums, GaussPoints)
+function [Ak, Ag, H, strain] = isoC2D4(U, nodesSubZone, elemSubZone, globalNodeNums, GP)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Function returns Ak, Ag and H matrices for constructing constraints on
@@ -27,7 +27,7 @@ nodesPerElem = size(elemSubZone,2) - 1;
 DOF = size(nodesSubZone,2) - 1;
 
 % Gauss point coordinates and weights
-switch GaussPoints
+switch GP
     case 1
         zeta = 0;
         w = 2;
@@ -44,7 +44,7 @@ Ak = zeros(1,length(nodesSubZone)*DOF);
 Ag = zeros(1,length(nodesSubZone)*DOF);
 
 % Variable to save strain at Gauss points (to comopare to Abaqus output)
-strain = zeros(size(elemSubZone,1)*length(zeta)^3,7); % 7 = 1 element label + 6 strain components (e11, e22, e33, e12, e23, e13)
+strain = zeros(size(elemSubZone,1)*length(zeta)^3,5); % 4 = 1 element label + 3 strain components (e11, e22, e12)
 
 % Initialise row and col vectors
 row_ind = zeros(size(elemSubZone,1), (nodesPerElem*DOF)^2);
@@ -54,7 +54,7 @@ h_ind = zeros(size(elemSubZone,1), (nodesPerElem*DOF)^2);
 % Create waitbar
 WH = waitbar(0, 'Assembling global matrices...');
 
-%count = 0; % make counter to assign strain values
+count = 0; % make counter to assign strain values
 
 % Loop through each element
 for i = 1:size(elemSubZone,1)
@@ -71,7 +71,7 @@ for i = 1:size(elemSubZone,1)
     [X, Y] = getElemCoords2D(nodesSubZone, elemSubZone, i);
     
     % Calculate delX, delY and delZ - length of sides of element
-    [delX, delY] = calcHexSides2D(X, Y);
+    [delX, delY] = calcQuadSides(X, Y);
     
     %% Indexing - there are two types of node indexing - local and global.
     % Local refers to the node index in the subzone and global refers to
@@ -114,27 +114,21 @@ for i = 1:size(elemSubZone,1)
             for c = 1:nodesPerElem %Loop through number of nodes per element
                 Bi = [dNdXY(1,c)     0        ; ...
                       0            dNdXY(2,c) ; ...
-                      dNdXYZ(2,c)  dNdXYZ(1,c)];
+                      dNdXY(2,c)  dNdXY(1,c)];
                 B = [B Bi];
             end
             
             % Calculate strain: B*U
             eV = B*Ue; % Strain of measured displacements using full integration
             
-%             % Save strain from measured displacement field - compare to Abaqus (CHECK)
-%             count = count + 1;
-%             idx = (i-1)*GP + count;
-%             strain(idx,:) = [i count eV'];
+            % Save strain from measured displacement field - compare to Abaqus (CHECK)
+            count = count + 1;
+            idx = (i-1)*GP + count;
+            strain(idx,:) = [i count eV'];
             
             % Convert strains to square strain tensor
             e = [eV(1) 0.5*eV(3); ...
                 0.5*eV(3) eV(2) ];
-            
-%             % Calculate constraints: c1, c2, c3, c4
-%             f_c11 = detJ * eV(1) * B(1,:);
-%             f_c22 = detJ * eV(2) * B(2,:);
-%             f_c12 = detJ * (eV(2)*B(1,:) + eV(1)*B(2,:));
-%             f_c44 = detJ * eV(3) * B(3,:);
             
             % Ak term for current element (row vector)
             % fk = ak * UeVF = 0
@@ -152,16 +146,16 @@ for i = 1:size(elemSubZone,1)
             h = Hmatrix2D(B, detJ, delX, delY);
             
             % Sum the weighted functions
-            A1_1 = A1_1 + w(l).*ak;
-            A2_1 = A2_1 + w(l).*ag;
-            h_1 = h_1 + w(l).*h;
+            A1_1 = A1_1 + w(k).*ak;
+            A2_1 = A2_1 + w(k).*ag;
+            h_1 = h_1 + w(k).*h;
             
         end
         
         % Sum the weighted functions
-        A1_2 = A1_2 + w(k).*A1_1;
-        A2_2 = A2_2 + w(k).*A2_1;
-        h_2 = h_2 + w(k).*h_1;
+        A1_2 = A1_2 + w(j).*A1_1;
+        A2_2 = A2_2 + w(j).*A2_1;
+        h_2 = h_2 + w(j).*h_1;
         
         % Clear the inner sums
         A1_1 = A1_1.*0;
@@ -177,8 +171,8 @@ for i = 1:size(elemSubZone,1)
     
     % Assemble H matrix
     c = 0;
-    for a = 1:length(h_3)
-        for b = 1:length(h_3)
+    for a = 1:length(h_2)
+        for b = 1:length(h_2)
             c = c + 1;
             %H(localNodeIdcs(a), localNodeIdcs(b)) = H(localNodeIdcs(a), localNodeIdcs(b)) + h_3(a,b); %%%%%%% SLOW %%%%%%
             row_ind(i,c) = localNodeIdcs(a);
