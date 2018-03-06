@@ -1,10 +1,11 @@
 function [Results] = main_MonteCarlo_VFM(modelDir, outDir, rho, freq, refParams, maxIter, varyStart, subzones, elemType, GaussianNoise, num_MonteCarlo, noiseType, fibreNoise)
 
-%% Virtual Fields Method %%
+%% Optimised Virtual Fields Method %%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This function utilises the optimised virutal fields method to solve for 
-% the global linear elastic stiffness properties of a 3D structure given: 
+% the global linear elastic stiffness properties of a 3D structure from
+% a complex harmonic displacement field given: 
 % 1) node coordinates, 2) element connectivitiy and 3) nodal displacements
 %
 % Allows for estimating 1, 3 or 5 parameters for an isotropic or transversely
@@ -18,7 +19,7 @@ function [Results] = main_MonteCarlo_VFM(modelDir, outDir, rho, freq, refParams,
 %         4) freq - frequency (Hz)
 %         5) refParams - reference or initial parameters to use in estimation
 %         6) maxIter - maximum number of iterations allowable (default = 30)
-%         7) varyStartParam - boolean (TRUE/FALSE) - controls whether or not to vary the initial parameter estimates (default = FALSE) **
+%         7) varyStart - boolean (TRUE/FALSE) - controls whether or not to vary the initial parameter estimates (default = FALSE) **
 %         8) subzones = struct with three fields: x, y and z where subzones.x is a N x 2 matrix (N = number of subzones, 2 = range of x coords in each suzbone)
 %         9) elemType - string controlling integration type: 'C3D8' (selectively reduced integration elements),
 % 'C3D8R' (fully reduced integration) and 'C3D8F' (fully integrated - giving the user the choice of the number of Gauss points)
@@ -30,7 +31,7 @@ function [Results] = main_MonteCarlo_VFM(modelDir, outDir, rho, freq, refParams,
 % ** varyStart will randomly choose initial estimate from Gaussian distribution centred at the reference parameters
 % with stdev = 20% * reference parameter
 %
-% Output: subZoneResults - struct containing results from VFM analysis
+% Output: Results - struct containing results from VFM analysis
 %
 % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - %
 % Input file formats and locations: 
@@ -100,10 +101,11 @@ omega = freq*2*pi; % angular frequency in rad/s
 
 % Number of parameters to solve for: 1, 3, or 5
 if ~isempty(refParams)
-    numParam = length(refParams);
-    
-    if numParam ~= 3 && numParam ~= 5
-        disp('You have not entered an appropriate number of parameters. Please enter 3 or 5 initial guesses.');
+    if length(refParams) ~= 3 && length(refParams) ~= 5
+        disp('You have not entered an appropriate number of reference parameters. To estimate transversely isotropic material properties, either 3 or 5 reference parameters are needed. The material will be assumed isotropic.');
+        numParam = 1;
+    else
+        numParam = length(refParams);
     end
 else
     numParam = 1;
@@ -111,6 +113,12 @@ end
 
 % Number of Gauss points in each direction - used for fully integrated elements only
 GaussPoints = 2;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Create diary file
+tmp = clock;
+diaryFile = sprintf('%s/logFile_optimisedVF_%dparam_%d%d%d_%d%d.txt', outDir, numParam, tmp(1), tmp(1), tmp(3), tmp(4), tmp(5));
+diary(diaryFile)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load model data
@@ -504,8 +512,9 @@ if ~isempty(GaussianNoise)
         end
         
         % Save results to mat file
-        save(sprintf('%s/optimisedVF_%dparam_%.3fnoise_%MC_%dsubzones_%s_vs%d.mat', noiseDir, numParam, GaussianNoise(p), num_MonteCarlo, countZone, elemType, varyStart), 'Results', 'maxIter', 'fibreNoise');
-        
+        matFile = sprintf('%s/optimisedVF_%dparam_%.3fnoise_%MC_%dsubzones_%s_vs%d.mat', noiseDir, numParam, GaussianNoise(p), num_MonteCarlo, countZone, elemType, varyStart);
+        save(matFile, 'Results', 'maxIter', 'fibreNoise');
+        disp(matFile)
     end
 else
     
@@ -727,9 +736,12 @@ else
     end
     
     % Save results to mat file
-    save(sprintf('%s/optimisedVF_%dparam_%dsubzones_%s_vs%d.mat', noiseDir, numParam, countZone, elemType, varyStart), 'Results', 'maxIter', 'fibreNoise');
+    matFile = sprintf('%s/optimisedVF_%dparam_%dsubzones_%s_vs%d.mat', noiseDir, numParam, countZone, elemType, varyStart);
+    save(matFile, 'Results', 'maxIter', 'fibreNoise');
+    disp(matFile)
         
     
 end
 
+diary off
 % The end
