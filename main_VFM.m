@@ -109,7 +109,7 @@ GaussPoints = 2;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create diary file
 tmp = clock;
-diaryFile = sprintf('%s/logFile_optimisedVF_%dparam_%d%d%d_%d%d.txt', outDir, numParam, tmp(1), tmp(1), tmp(3), tmp(4), tmp(5));
+diaryFile = sprintf('%s/logFile_optimisedVF_%dparam_%d%d%d_%d%d.txt', outDir, numParam, tmp(1), tmp(2), tmp(3), tmp(4), tmp(5));
 diary(diaryFile)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -233,14 +233,6 @@ else % Else if data is real only
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Create initial parameters
-if varyStart
-    paramInit = varyParamStart(refParams);
-else
-    paramInit = refParams;
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Loop through subzones
 
 % Count subzone
@@ -314,7 +306,7 @@ for m = 1:size(xRange,1)
                     
                     % Qapp - approximate parameters to use to calculate virtual displacement field
                     if ~exist('moduli','var')
-                        paramEst = paramInit;
+                        paramEst = refParams;
                     else
                         paramEst = moduli; % Parameters calculated from previous subzone
                     end
@@ -375,7 +367,7 @@ for m = 1:size(xRange,1)
                     
                     % Qapp - approximate parameters to use to calculate virtual displacement field
                     if ~exist('moduli','var')
-                        paramEst = paramInit; % Initial parameter guesses
+                        paramEst = refParams; % Initial parameter guesses
                     else
                         paramEst = moduli; % Parameters calculated from previous subzone
                     end
@@ -436,8 +428,8 @@ for m = 1:size(xRange,1)
 end
 
 % Save results to mat file
-matFile = sprintf('%s/optimisedVF_%dparam_%dsubzones_%s.mat', noiseDir, numParam, countZone, elemType);
-save(matFile, 'Results', 'maxIter', 'fibreNoise');
+matFile = sprintf('%s/optimisedVF_%dparam_%dsubzones_%s.mat', outDir, numParam, countZone, elemType);
+save(matFile, 'Results', 'maxIter');
 disp(matFile)
 
 

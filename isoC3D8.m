@@ -66,8 +66,8 @@ for i = 1:size(elemSubZone,1)
     % Get vectors of nodal coordinates
     [X, Y, Z] = getElemCoords(nodesSubZone, elemSubZone, i);
     
-    % Calculate delX, delY and delZ - length of sides of element
-    [delX, delY, delZ] = calcHexSides(X, Y, Z);
+%     % Calculate delX, delY and delZ - length of sides of element
+%     [delX, delY, delZ] = calcHexSides(X, Y, Z);
     
     %% Indexing - there are two types of node indexing - local and global. 
     % Local refers to the node index in the subzone and global refers to 
@@ -163,7 +163,8 @@ for i = 1:size(elemSubZone,1)
                 %% H Matrix - Optimisation matrix for isotropic case (Connesson et al. 2015)
     
                 % Construct H matrix
-                h = Hmatrix(Bf, detJ, delX, delY, delZ);  
+                %h = Hmatrix(Bf, detJ, delX, delY, delZ); 
+                h = Hmatrix_Strain(Bf, detJ);
                 %h = h + h*1i; 
                 
                 % Sum the weighted functions

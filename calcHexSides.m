@@ -27,10 +27,10 @@ for i = 1:length(d)
 %     lenSides(i) = distance(coord1, coord2); % Get length between coordinates
 end
 
-% % Get mean side lengths in each direction
-% dX = mean(lenSides(1:4));
-% dY = mean(lenSides(5:8));
-% dZ = mean(lenSides(9:12));
+% % % Get mean side lengths in each direction
+% dX1 = mean(lenSides(1:4));
+% dY1 = mean(lenSides(5:8));
+% dZ1 = mean(lenSides(9:12));
 
 % Get delX, delY and delZ - changed 05/03/2018 RM
 tmp = max(d);
