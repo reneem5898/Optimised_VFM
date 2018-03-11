@@ -117,7 +117,7 @@ GaussPoints = 2;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create diary file
 tmp = clock;
-diaryFile = sprintf('%s/logFile_optimisedVF_%dparam_%d%d%d_%d%d.txt', outDir, numParam, tmp(1), tmp(1), tmp(3), tmp(4), tmp(5));
+diaryFile = sprintf('%s/logFile_optimisedVF_%dparam_%d%d%d_%d%d.txt', outDir, numParam, tmp(1), tmp(2), tmp(3), tmp(4), tmp(5));
 diary(diaryFile)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
