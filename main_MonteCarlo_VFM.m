@@ -512,7 +512,7 @@ if ~isempty(GaussianNoise)
         end
         
         % Save results to mat file
-        matFile = sprintf('%s/optimisedVF_%dparam_%.3fnoise_%MC_%dsubzones_%s_vs%d.mat', noiseDir, numParam, GaussianNoise(p), num_MonteCarlo, countZone, elemType, varyStart);
+        matFile = sprintf('%s/optimisedVF_%dparam_%.3fnoise_%dMC_%dsubzones_%s_vs%d.mat', noiseDir, numParam, GaussianNoise(p), num_MonteCarlo, countZone, elemType, varyStart);
         save(matFile, 'Results', 'maxIter', 'fibreNoise');
         disp(matFile)
     end
