@@ -9,7 +9,7 @@ function B = makeBmatrix(x, y, z)
 %
 % Output: B matrix
 %
-% Renee Miller
+% Renee Miller (reneem5898@gmail.com)
 % Date: 26 June 2017
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

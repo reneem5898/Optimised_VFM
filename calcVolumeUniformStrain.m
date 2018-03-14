@@ -8,11 +8,11 @@ function detJ = calcVolumeUniformStrain(X, Y, Z)
 %
 % Output: detJ - volume of element
 %
-% Renee Miller
+% Renee Miller (reneem5898@gmail.com)
 % 28 June 2017
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% IP% Integration point
+% Integration point
 IP = [0, 0, 0];
 m = IP(1); n = IP(2); o = IP(3);
 
