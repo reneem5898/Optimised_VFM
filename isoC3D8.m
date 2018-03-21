@@ -163,8 +163,9 @@ for i = 1:size(elemSubZone,1)
                 %% H Matrix - Optimisation matrix for isotropic case (Connesson et al. 2015)
     
                 % Construct H matrix
-                %h = Hmatrix(Bf, detJ, delX, delY, delZ); 
-                h = Hmatrix_Strain(Bf, detJ);
+                %h = Hmatrix_Ortho(Bf, detJ, delX, delY, delZ); 
+                %h = Hmatrix_Strain(Bf, detJ);
+                h = Hmatrix(Bf, detJ);
                 %h = h + h*1i; 
                 
                 % Sum the weighted functions
