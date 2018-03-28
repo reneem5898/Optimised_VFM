@@ -1,4 +1,4 @@
-function h = Hmatrix_Strain(B, detJ)
+function h = Hmatrix_Strain(Bf, Br, detJ)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % This function returns the element h matrix (Connesson et al. 2015)
@@ -16,14 +16,14 @@ function h = Hmatrix_Strain(B, detJ)
 % V(Shear) ~ E(fg^2(e,eVF)) = (1/2)*stdU^2*UeVF'*H*UeVF
 
 % t = 1/3 * Tr(e*)
-t = 1/3 * sum(B(1:3,:),1);
+t = 1/3 * sum(Br(1:3,:),1);
 
 % Calculate each component of h
-h1 = (B(1,:) - t)'*(B(1,:) - t);
-h2 = (B(2,:) - t)'*(B(2,:) - t);
-h3 = (B(3,:) - t)'*(B(3,:) - t);
-h12 = 4*(0.5*B(4,:))'*(0.5*B(4,:));
-h13 = 4*(0.5*B(5,:))'*(0.5*B(5,:));
-h23 = 4*(0.5*B(6,:))'*(0.5*B(6,:));
+h1 = (Bf(1,:) - t)'*(Bf(1,:) - t);
+h2 = (Bf(2,:) - t)'*(Bf(2,:) - t);
+h3 = (Bf(3,:) - t)'*(Bf(3,:) - t);
+h12 = 4*(0.5*Bf(4,:))'*(0.5*Bf(4,:));
+h13 = 4*(0.5*Bf(5,:))'*(0.5*Bf(5,:));
+h23 = 4*(0.5*Bf(6,:))'*(0.5*Bf(6,:));
 
 h = (detJ^2)*(h1 + h2 + h3 + h12 + h13 + h23); %Hg

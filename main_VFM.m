@@ -428,7 +428,7 @@ for m = 1:size(xRange,1)
 end
 
 % Save results to mat file
-matFile = sprintf('%s/optimisedVF_%dparam_%dsubzones_%s_BHmatrix.mat', outDir, numParam, countZone, elemType);
+matFile = sprintf('%s/optimisedVF_%dparam_%dsubzones_%s.mat', outDir, numParam, countZone, elemType);
 save(matFile, 'Results', 'maxIter');
 disp(matFile)
 

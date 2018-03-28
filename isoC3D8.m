@@ -164,10 +164,8 @@ for i = 1:size(elemSubZone,1)
     
                 % Construct H matrix
                 %h = Hmatrix_Ortho(Bf, detJ, delX, delY, delZ); 
-                %h = Hmatrix_Strain(Bf, detJ);
-                h = Hmatrix(Bf, detJ);
-                %h = h + h*1i; 
-                
+                h = Hmatrix_Strain(Bf, Br, detJ);
+                                
                 % Sum the weighted functions
                 A1_1 = A1_1 + w(l).*ak;
                 A2_1 = A2_1 + w(l).*ag;
