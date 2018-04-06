@@ -171,7 +171,7 @@ end
 if numParam > 1
     
     % Load material orientation files from model directory
-    if exist(strcat(modelDir,'/Dir1.txt'), 'f')
+    if exist(strcat(modelDir,'/Dir1.txt'), 'file')
         
         dir1 = load(strcat(modelDir,'/Dir1.txt')); % num elements x 3: <u1, u2, u3>
         dir2 = load(strcat(modelDir,'/Dir2.txt')); % num elements x 3: <v1, v2, v3>
@@ -179,7 +179,7 @@ if numParam > 1
         
         
     % Load material orientation files from output directory - when varying material orientations was tested
-    elseif exist(strcat(outDir,'/Dir1.txt'), 'f')
+    elseif exist(strcat(outDir,'/Dir1.txt'), 'file')
         
         dir1 = load(strcat(outDir,'/Dir1.txt')); % num elements x 3: <u1, u2, u3>
         dir2 = load(strcat(outDir,'/Dir2.txt')); % num elements x 3: <v1, v2, v3>
@@ -336,6 +336,7 @@ for m = 1:size(xRange,1)
                     % Calculate the percent change in estimated material parameters
                     diffPerc = max(abs((moduli - paramEst)./paramEst))*100;
                     disp(sprintf('Maximum change in parameters: %.2f%', diffPerc));
+
                     
                 end
                 
