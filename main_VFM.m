@@ -118,7 +118,8 @@ diary(diaryFile)
 disp('Loading model node and element data...');
 
 % Node coordinates
-n = load(strcat(modelDir,'/nodeCoords.txt'));
+%n = load(strcat(modelDir,'/nodeCoords.txt'));
+n = load(strcat(outDir, '/nodeCoords.txt')); % CHANGED ON 11/04/18 FOR INFLATION + VIBRATION PROBLEM - RM
 
 % Each element = 1 row with eight node numbers
 e = load(strcat(modelDir,'/elems.txt'));
