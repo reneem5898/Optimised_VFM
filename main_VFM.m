@@ -117,9 +117,14 @@ diary(diaryFile)
 
 disp('Loading model node and element data...');
 
-% Node coordinates
-%n = load(strcat(modelDir,'/nodeCoords.txt'));
-n = load(strcat(outDir, '/nodeCoords.txt')); % CHANGED ON 11/04/18 FOR INFLATION + VIBRATION PROBLEM - RM
+% Node coordinates: Load deformed coordinates from hyperelastic deformation
+% (in the outDir) if they exist. If not, load the reference nodal coordinates.
+nodesFile = strcat(outDir, '/nodeCoords.txt');
+if exist(nodesFile, 'file')% CHANGED ON 11/04/18 FOR INFLATION + VIBRATION PROBLEM - RM
+    n = load(nodesFile);
+else
+    n = load(strcat(modelDir,'/nodeCoords.txt'));
+end
 
 % Each element = 1 row with eight node numbers
 e = load(strcat(modelDir,'/elems.txt'));
