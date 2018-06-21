@@ -66,8 +66,6 @@ for i = 1:size(elemSubZone,1)
     % Get vectors of nodal coordinates
     [X, Y, Z] = getElemCoords(nodesSubZone, elemSubZone, i);
     
-%     % Calculate delX, delY and delZ - length of sides of element
-%     [delX, delY, delZ] = calcHexSides(X, Y, Z);
     
     %% Indexing - there are two types of node indexing - local and global. 
     % Local refers to the node index in the subzone and global refers to 
@@ -82,6 +80,7 @@ for i = 1:size(elemSubZone,1)
     % Get displacements for particular element using indices
     Ue = U(globalNodeIdcs);
     
+    
     %% Compute reduced integration B matrix - Uniform strain method - Flanagan 1981
     
     % Make B matrix - Flanagan 1981 - Following method in Appendix I of paper
@@ -92,6 +91,10 @@ for i = 1:size(elemSubZone,1)
     
     % Divide B matrix by element volume to get reduced integration B matrix for element
     Br = Br/elemVolume; 
+    
+    % Compute the dilatational part of Br
+    tmp = sum(Br(1:3,:),1);
+    Br_dil = 1/3 * [tmp; tmp; tmp; zeros(1, length(tmp)); zeros(1, length(tmp)); zeros(1, length(tmp))];
        
     for j = 1:length(zeta)
         o = zeta(j);
@@ -132,39 +135,48 @@ for i = 1:size(elemSubZone,1)
                     Bf = [Bf Bi];
                 end
                 
+                %%%%%%%%% Selectively Reduced Stiffness Matrix %%%%%%%%%%%%
+                % Full integration used for deviatoric part and reduced 
+                % integration used for dilational part (Hughes 1980)
+                
+                % Compute the dilatational part of Bf
+                tmp = sum(Bf(1:3,:),1);
+                Bf_dil = 1/3 * [tmp; tmp; tmp; zeros(1, length(tmp)); zeros(1, length(tmp)); zeros(1, length(tmp))]; 
+                
+                % Compute the deviatoric part of Bf
+                Bf_dev = Bf - Bf_dil;
+                
+                % Compute B_bar (the final B matrix to use)
+                B_bar = Bf_dev + Br_dil;
+                
                 % Calculate strain: B*U
-                eVr = Br*Ue; 
-                eVf = Bf*Ue;
+                eV = B_bar * Ue;
                                 
                 % Save strain from measured displacement field - compare to Abaqus (CHECK)
                 count = count + 1;
                 idx = (i-1)*GP + count;
-                strain(idx,:) = [i count eVr(1:3).' eVf(4:6).'];
+                strain(idx,:) = [i count eV.'];
                 
                 % Convert strains to square strain tensor
-                er = [eVr(1) 0.5*eVr(4) 0.5*eVr(5); ...
-                    0.5*eVr(4) eVr(2) 0.5*eVr(6);...
-                    0.5*eVr(5) 0.5*eVr(6) eVr(3)];
-                ef = [eVf(1) 0.5*eVf(4) 0.5*eVf(5); ...
-                    0.5*eVf(4) eVf(2) 0.5*eVf(6);...
-                    0.5*eVf(5) 0.5*eVf(6) eVf(3)];
+                e = [eV(1) 0.5*eV(4) 0.5*eV(5); ...
+                    0.5*eV(4) eV(2) 0.5*eV(6);...
+                    0.5*eV(5) 0.5*eV(6) eV(3)];
                 
                 % Ak term for current element (row vector)
                 % fk = ak * UeVF = 0
-                ak = trace(er)*sum(Br(1:3,:),1)*detJ;
+                ak = trace(e)*sum(B_bar(1:3,:),1)*detJ;
                 
                 % Ag term for current element (row vector)
                 % fg = ag * UeVF = 1
-                tmp = eVf(1)*Bf(1,:) + eVf(2)*Bf(2,:) + eVf(3)*Bf(3,:) + 2*0.5*eVf(4)*0.5*Bf(4,:) ...
-                    + 2*0.5*eVf(5)*0.5*Bf(5,:) + 2*0.5*eVf(6)*0.5*Bf(6,:); % e:eVF
+                tmp = eV(1)*B_bar(1,:) + eV(2)*B_bar(2,:) + eV(3)*B_bar(3,:) + 2*0.5*eV(4)*0.5*B_bar(4,:) ...
+                    + 2*0.5*eV(5)*0.5*B_bar(5,:) + 2*0.5*eV(6)*0.5*B_bar(6,:); % e:eV
                 % ag = 2 * (e:e* - 1/3 * Tr(e) * Tr(e*)) * dV
-                ag = 2*(tmp - (1/3)* trace(ef)* sum(Bf(1:3,:),1)) * detJ;
+                ag = 2*(tmp - (1/3)* trace(e)* sum(B_bar(1:3,:),1)) * detJ;
                                 
                 %% H Matrix - Optimisation matrix for isotropic case (Connesson et al. 2015)
     
                 % Construct H matrix
-                %h = Hmatrix_Ortho(Bf, detJ, delX, delY, delZ); 
-                h = Hmatrix_Strain(Bf, Br, detJ);
+                h = Hmatrix_Strain(B_bar, detJ);
                                 
                 % Sum the weighted functions
                 A1_1 = A1_1 + w(l).*ak;

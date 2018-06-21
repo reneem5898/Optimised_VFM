@@ -264,7 +264,7 @@ for m = 1:size(xRange,1)
             %% ISOTROPIC MATERIAL MODEL
             if numParam == 1
                 
-                disp(sprintf('Running Region #: %d\n', countZone));
+                fprintf('Running Region #: %d\n', countZone);
                 
                 % Calculate the numeric virtual field
                 disp('Calculating the numeric virtual field...')
@@ -308,7 +308,7 @@ for m = 1:size(xRange,1)
                     % Count number of iterations
                     iter = iter + 1;
                     
-                    disp(sprintf('Running Region #: %d\nIteration #: %d\n', countZone, iter));
+                    fprintf('Running Region #: %d\nIteration #: %d\n', countZone, iter);
                     
                     % Qapp - approximate parameters to use to calculate virtual displacement field
                     if ~exist('moduli','var')
@@ -341,7 +341,7 @@ for m = 1:size(xRange,1)
                     
                     % Calculate the percent change in estimated material parameters
                     diffPerc = max(abs((moduli - paramEst)./paramEst))*100;
-                    disp(sprintf('Maximum change in parameters: %.2f%', diffPerc));
+                    fprintf('Maximum change in parameters: %.2f%\n\n', diffPerc);
 
                     
                 end
@@ -370,7 +370,7 @@ for m = 1:size(xRange,1)
                     % Count number of iterations
                     iter = iter + 1;
                     
-                    disp(sprintf('Running Region #: %d\nIteration #: %d\n', countZone, iter));
+                    fprintf('Running Region #: %d\nIteration #: %d\n', countZone, iter);
                     
                     % Qapp - approximate parameters to use to calculate virtual displacement field
                     if ~exist('moduli','var')
@@ -380,7 +380,7 @@ for m = 1:size(xRange,1)
                     end
                     
                     % Calculate engineering constants to use for calculating convergence
-                    [Ec, G12c, G13c, E1c, E3c, v12c, v13c, v31c, dampc] = getParams_5p(paramEst, 1, maxIter);
+                    [~, G12c, G13c, E1c, E3c, ~, ~, ~, ~] = getParams_5p(paramEst, 1, maxIter);
                     paramComp = [G12c; G13c; E1c; E3c];
                     
                     % Create numeric virtual displacement field
@@ -413,7 +413,7 @@ for m = 1:size(xRange,1)
                     %diffPerc = max(abs((moduli(3:4) - paramEst(3:4))./paramEst(3:4)))*100; % Only use parameters C44 and C66 to test for convergence - in incompressible media, C11, C33 and C13 are not reliably estimated
                     %diffPerc = max(abs((moduli - paramEst)./paramEst))*100;
                     diffPerc = max(abs((paramI - paramComp)./paramComp))*100;
-                    disp(sprintf('Maximum change in parameters: %.2f%', diffPerc));
+                    disp(sprintf('Maximum change in parameters: %.2f%\n\n', diffPerc));
                     
                 end
                 

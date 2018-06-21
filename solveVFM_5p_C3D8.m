@@ -119,54 +119,9 @@ for i = 1:size(elemSubZone,1)
     % Divide B matrix by element volume to get B matrix for element
     Br = B/detJ; % Reduced integration B matrix
     
-    % Calculate strain: B*U - reduced integration
-    eV_r = Br*Ue; % Strain of measured displacements using reduced integration
-    eVF1_Vr = Br*UeVF1; % Strain of virtual displacement field #1
-    eVF2_Vr = Br*UeVF2; % Strain of virtual displacement field #2
-    eVF3_Vr = Br*UeVF3; % Strain of virtual displacement field #3
-	eVF4_Vr = Br*UeVF4; % Strain of virtual displacement field #4
-	eVF5_Vr = Br*UeVF5; % Strain of virtual displacement field #5
-    
-    % Convert strain to square tensor
-    eR = [eV_r(1) 0.5*eV_r(4) 0.5*eV_r(5); ...
-        0.5*eV_r(4) eV_r(2) 0.5*eV_r(6);...
-        0.5*eV_r(5) 0.5*eV_r(6) eV_r(3)];
-    
-    eVF1r = [eVF1_Vr(1) 0.5*eVF1_Vr(4) 0.5*eVF1_Vr(5); ...
-        0.5*eVF1_Vr(4) eVF1_Vr(2) 0.5*eVF1_Vr(6);...
-        0.5*eVF1_Vr(5) 0.5*eVF1_Vr(6) eVF1_Vr(3)];
-    
-    eVF2r = [eVF2_Vr(1) 0.5*eVF2_Vr(4) 0.5*eVF2_Vr(5); ...
-        0.5*eVF2_Vr(4) eVF2_Vr(2) 0.5*eVF2_Vr(6);...
-        0.5*eVF2_Vr(5) 0.5*eVF2_Vr(6) eVF2_Vr(3)];
-    
-    eVF3r = [eVF3_Vr(1) 0.5*eVF3_Vr(4) 0.5*eVF3_Vr(5); ...
-        0.5*eVF3_Vr(4) eVF3_Vr(2) 0.5*eVF3_Vr(6);...
-        0.5*eVF3_Vr(5) 0.5*eVF3_Vr(6) eVF3_Vr(3)];
-		
-	eVF4r = [eVF4_Vr(1) 0.5*eVF4_Vr(4) 0.5*eVF4_Vr(5); ...
-        0.5*eVF4_Vr(4) eVF4_Vr(2) 0.5*eVF4_Vr(6);...
-        0.5*eVF4_Vr(5) 0.5*eVF4_Vr(6) eVF4_Vr(3)];
-		
-	eVF5r = [eVF5_Vr(1) 0.5*eVF5_Vr(4) 0.5*eVF5_Vr(5); ...
-        0.5*eVF5_Vr(4) eVF5_Vr(2) 0.5*eVF5_Vr(6);...
-        0.5*eVF5_Vr(5) 0.5*eVF5_Vr(6) eVF5_Vr(3)];
-        
-    % Rotate strain tensor
-    eRotR = L * eR * L';
-    eVF1_RotR = L * eVF1r * L';
-    eVF2_RotR = L * eVF2r * L';
-    eVF3_RotR = L * eVF3r * L';
-	eVF4_RotR = L * eVF4r * L';
-	eVF5_RotR = L * eVF5r * L';
-    
-    % Put strain tensor back into vector
-    eVr = [eRotR(1,1); eRotR(2,2); eRotR(3,3); 2*eRotR(1,2); 2*eRotR(1,3); 2*eRotR(2,3)];
-    eVF1_Vr = [eVF1_RotR(1,1); eVF1_RotR(2,2); eVF1_RotR(3,3); 2*eVF1_RotR(1,2); 2*eVF1_RotR(1,3); 2*eVF1_RotR(2,3)];
-    eVF2_Vr = [eVF2_RotR(1,1); eVF2_RotR(2,2); eVF2_RotR(3,3); 2*eVF2_RotR(1,2); 2*eVF2_RotR(1,3); 2*eVF2_RotR(2,3)];
-    eVF3_Vr = [eVF3_RotR(1,1); eVF3_RotR(2,2); eVF3_RotR(3,3); 2*eVF3_RotR(1,2); 2*eVF3_RotR(1,3); 2*eVF3_RotR(2,3)];
-	eVF4_Vr = [eVF4_RotR(1,1); eVF4_RotR(2,2); eVF4_RotR(3,3); 2*eVF4_RotR(1,2); 2*eVF4_RotR(1,3); 2*eVF4_RotR(2,3)];
-	eVF5_Vr = [eVF5_RotR(1,1); eVF5_RotR(2,2); eVF5_RotR(3,3); 2*eVF5_RotR(1,2); 2*eVF5_RotR(1,3); 2*eVF5_RotR(2,3)];
+    % Compute the dilatational part of Br
+    tmp = sum(Br(1:3,:),1);
+    Br_dil = 1/3 * [tmp; tmp; tmp; zeros(1, length(tmp)); zeros(1, length(tmp)); zeros(1, length(tmp))];
     
     % Loop through Gauss points
     for j = 1:length(zeta)
@@ -216,108 +171,124 @@ for i = 1:size(elemSubZone,1)
                 %Multiply inverse of jacobian times the derivative of shape functions
                 dNdXYZ = jac\DN;
                 
-                % Calculate B matrix
-                B = [];
+                % Calculate fully integrated B matrix
+                Bf = [];
                 for x = 1:nodesPerElem %Loop through number of nodes per element
-                    Bi = [dNdXYZ(1,x) 0 0; 0 dNdXYZ(2,x) 0; 0 0 dNdXYZ(3,x); ...
-                        dNdXYZ(2,x) dNdXYZ(1,x) 0; dNdXYZ(3,x) 0 dNdXYZ(1,x); 0 dNdXYZ(3,x) dNdXYZ(2,x)];
-                    B = [B Bi];
+                    Bi = [dNdXYZ(1,x)       0           0; ...
+                            0           dNdXYZ(2,x)     0; ...
+                            0               0       dNdXYZ(3,x); ...
+                        dNdXYZ(2,x)     dNdXYZ(1,x)     0; ...
+                        dNdXYZ(3,x)         0       dNdXYZ(1,x); ...
+                        0               dNdXYZ(3,x) dNdXYZ(2,x)];
+                    Bf = [Bf Bi];
                 end
                 
-                % Full integration used for deviatoric part of strain
-                Bf = B;
+                %%%%%%%%% Selectively Reduced Stiffness Matrix %%%%%%%%%%%%
+                % Full integration used for deviatoric part and reduced
+                % integration used for dilational part (Hughes 1980)
                 
-                % Calculate strain: B*U - full integrated strain
-                eVf = Bf*Ue; % Strain of measured displacements
-                eVF1_Vf = Bf*UeVF1; % Strain of virtual displacement field #1
-                eVF2_Vf = Bf*UeVF2; % Strain of virtual displacement field #2
-                eVF3_Vf = Bf*UeVF3; % Strain of virtual displacement field #3
-				eVF4_Vf = Bf*UeVF4; % Strain of virtual displacement field #3
-				eVF5_Vf = Bf*UeVF5; % Strain of virtual displacement field #3
+                % Compute the dilatational part of Bf and Br
+                tmp = sum(Bf(1:3,:),1);
+                Bf_dil = 1/3 * [tmp; tmp; tmp; zeros(1, length(tmp)); zeros(1, length(tmp)); zeros(1, length(tmp))];
+                
+                % Compute the deviatoric part of Bf
+                Bf_dev = Bf - Bf_dil;
+                
+                % Compute B_bar (the final B matrix to use)
+                B_bar = Bf_dev + Br_dil;
+                
+                
+                % Calculate strain: B*U
+                eV = B_bar*Ue; % Strain of measured displacements
+                eVF1_V = B_bar*UeVF1; % Strain of virtual displacement field #1
+                eVF2_V = B_bar*UeVF2; % Strain of virtual displacement field #2
+                eVF3_V = B_bar*UeVF3; % Strain of virtual displacement field #3
+				eVF4_V = B_bar*UeVF4; % Strain of virtual displacement field #3
+				eVF5_V = B_bar*UeVF5; % Strain of virtual displacement field #3
                 
                 % Rotate strain matrix
                 % Convert strains to square strain tensors
-                eF = [eVf(1) 0.5*eVf(4) 0.5*eVf(5); ...
-                    0.5*eVf(4) eVf(2) 0.5*eVf(6);...
-                    0.5*eVf(5) 0.5*eVf(6) eVf(3)];
+                e = [eV(1) 0.5*eV(4) 0.5*eV(5); ...
+                    0.5*eV(4) eV(2) 0.5*eV(6);...
+                    0.5*eV(5) 0.5*eV(6) eV(3)];
                 
-                eVF1f = [eVF1_Vf(1) 0.5*eVF1_Vf(4) 0.5*eVF1_Vf(5); ...
-                    0.5*eVF1_Vf(4) eVF1_Vf(2) 0.5*eVF1_Vf(6);...
-                    0.5*eVF1_Vf(5) 0.5*eVF1_Vf(6) eVF1_Vf(3)];
+                eVF1 = [eVF1_V(1) 0.5*eVF1_V(4) 0.5*eVF1_V(5); ...
+                    0.5*eVF1_V(4) eVF1_V(2) 0.5*eVF1_V(6);...
+                    0.5*eVF1_V(5) 0.5*eVF1_V(6) eVF1_V(3)];
                 
-                eVF2f = [eVF2_Vf(1) 0.5*eVF2_Vf(4) 0.5*eVF2_Vf(5); ...
-                    0.5*eVF2_Vf(4) eVF2_Vf(2) 0.5*eVF2_Vf(6);...
-                    0.5*eVF2_Vf(5) 0.5*eVF2_Vf(6) eVF2_Vf(3)];
+                eVF2 = [eVF2_V(1) 0.5*eVF2_V(4) 0.5*eVF2_V(5); ...
+                    0.5*eVF2_V(4) eVF2_V(2) 0.5*eVF2_V(6);...
+                    0.5*eVF2_V(5) 0.5*eVF2_V(6) eVF2_V(3)];
                 
-                eVF3f = [eVF3_Vf(1) 0.5*eVF3_Vf(4) 0.5*eVF3_Vf(5); ...
-                    0.5*eVF3_Vf(4) eVF3_Vf(2) 0.5*eVF3_Vf(6);...
-                    0.5*eVF3_Vf(5) 0.5*eVF3_Vf(6) eVF3_Vf(3)];
+                eVF3 = [eVF3_V(1) 0.5*eVF3_V(4) 0.5*eVF3_V(5); ...
+                    0.5*eVF3_V(4) eVF3_V(2) 0.5*eVF3_V(6);...
+                    0.5*eVF3_V(5) 0.5*eVF3_V(6) eVF3_V(3)];
 					
-				eVF4f = [eVF4_Vf(1) 0.5*eVF4_Vf(4) 0.5*eVF4_Vf(5); ...
-                    0.5*eVF4_Vf(4) eVF4_Vf(2) 0.5*eVF4_Vf(6);...
-                    0.5*eVF4_Vf(5) 0.5*eVF4_Vf(6) eVF4_Vf(3)];
+				eVF4 = [eVF4_V(1) 0.5*eVF4_V(4) 0.5*eVF4_V(5); ...
+                    0.5*eVF4_V(4) eVF4_V(2) 0.5*eVF4_V(6);...
+                    0.5*eVF4_V(5) 0.5*eVF4_V(6) eVF4_V(3)];
 					
-				eVF5f = [eVF5_Vf(1) 0.5*eVF5_Vf(4) 0.5*eVF5_Vf(5); ...
-                    0.5*eVF5_Vf(4) eVF5_Vf(2) 0.5*eVF5_Vf(6);...
-                    0.5*eVF5_Vf(5) 0.5*eVF5_Vf(6) eVF5_Vf(3)];
+				eVF5 = [eVF5_V(1) 0.5*eVF5_V(4) 0.5*eVF5_V(5); ...
+                    0.5*eVF5_V(4) eVF5_V(2) 0.5*eVF5_V(6);...
+                    0.5*eVF5_V(5) 0.5*eVF5_V(6) eVF5_V(3)];
                 
                 % Rotate: rotMat * strain tensor * rotMat'
-                eRotF = L * eF * L';
-                eVF1_RotF = L * eVF1f * L';
-                eVF2_RotF = L * eVF2f * L';
-                eVF3_RotF = L * eVF3f * L';
-				eVF4_RotF = L * eVF4f * L';
-				eVF5_RotF = L * eVF5f * L';
+                eRot = L * e * L';
+                eVF1_Rot = L * eVF1 * L';
+                eVF2_Rot = L * eVF2 * L';
+                eVF3_Rot = L * eVF3 * L';
+				eVF4_Rot = L * eVF4 * L';
+				eVF5_Rot = L * eVF5 * L';
                 
                 % Put tensor back into vector form
-                eVf = [eRotF(1,1); eRotF(2,2); eRotF(3,3); 2*eRotF(1,2); 2*eRotF(1,3); 2*eRotF(2,3)];
-                eVF1_Vf = [eVF1_RotF(1,1); eVF1_RotF(2,2); eVF1_RotF(3,3); 2*eVF1_RotF(1,2); 2*eVF1_RotF(1,3); 2*eVF1_RotF(2,3)];
-                eVF2_Vf = [eVF2_RotF(1,1); eVF2_RotF(2,2); eVF2_RotF(3,3); 2*eVF2_RotF(1,2); 2*eVF2_RotF(1,3); 2*eVF2_RotF(2,3)];
-                eVF3_Vf = [eVF3_RotF(1,1); eVF3_RotF(2,2); eVF3_RotF(3,3); 2*eVF3_RotF(1,2); 2*eVF3_RotF(1,3); 2*eVF3_RotF(2,3)];
-				eVF4_Vf = [eVF4_RotF(1,1); eVF4_RotF(2,2); eVF4_RotF(3,3); 2*eVF4_RotF(1,2); 2*eVF4_RotF(1,3); 2*eVF4_RotF(2,3)];
-				eVF5_Vf = [eVF5_RotF(1,1); eVF5_RotF(2,2); eVF5_RotF(3,3); 2*eVF5_RotF(1,2); 2*eVF5_RotF(1,3); 2*eVF5_RotF(2,3)];
+                eV = [eRot(1,1); eRot(2,2); eRot(3,3); 2*eRot(1,2); 2*eRot(1,3); 2*eRot(2,3)];
+                eVF1_V = [eVF1_Rot(1,1); eVF1_Rot(2,2); eVF1_Rot(3,3); 2*eVF1_Rot(1,2); 2*eVF1_Rot(1,3); 2*eVF1_Rot(2,3)];
+                eVF2_V = [eVF2_Rot(1,1); eVF2_Rot(2,2); eVF2_Rot(3,3); 2*eVF2_Rot(1,2); 2*eVF2_Rot(1,3); 2*eVF2_Rot(2,3)];
+                eVF3_V = [eVF3_Rot(1,1); eVF3_Rot(2,2); eVF3_Rot(3,3); 2*eVF3_Rot(1,2); 2*eVF3_Rot(1,3); 2*eVF3_Rot(2,3)];
+				eVF4_V = [eVF4_Rot(1,1); eVF4_Rot(2,2); eVF4_Rot(3,3); 2*eVF4_Rot(1,2); 2*eVF4_Rot(1,3); 2*eVF4_Rot(2,3)];
+				eVF5_V = [eVF5_Rot(1,1); eVF5_Rot(2,2); eVF5_Rot(3,3); 2*eVF5_Rot(1,2); 2*eVF5_Rot(1,3); 2*eVF5_Rot(2,3)];
              
                 % Save strain from measured displacement field -
                 % compare to Abaqus (CHECK)
                 count = count + 1;
                 idx = (i-1)*GP + count;
-                strain(idx,:) = [i count eVr(1:3).' eVf(4:6).'];
+                strain(idx,:) = [i count eV.'];
                 
                 % Calculate each component of the A matrix
-                % f_c11 - REDUCED INTEGRATION
-                f_c11_vf1 = detJ*( eVr(1)*eVF1_Vr(1) + eVr(2)*eVF1_Vr(2) +  eVr(1)*eVF1_Vr(2) + eVr(2)*eVF1_Vr(1) );
-                f_c11_vf2 = detJ*( eVr(1)*eVF2_Vr(1) + eVr(2)*eVF2_Vr(2) +  eVr(1)*eVF2_Vr(2) + eVr(2)*eVF2_Vr(1) );
-                f_c11_vf3 = detJ*( eVr(1)*eVF3_Vr(1) + eVr(2)*eVF3_Vr(2) +  eVr(1)*eVF3_Vr(2) + eVr(2)*eVF3_Vr(1) );
-                f_c11_vf4 = detJ*( eVr(1)*eVF4_Vr(1) + eVr(2)*eVF4_Vr(2) +  eVr(1)*eVF4_Vr(2) + eVr(2)*eVF4_Vr(1) );
-                f_c11_vf5 = detJ*( eVr(1)*eVF5_Vr(1) + eVr(2)*eVF5_Vr(2) +  eVr(1)*eVF5_Vr(2) + eVr(2)*eVF5_Vr(1) );
+                % f_c11 
+                f_c11_vf1 = detJ*( eV(1)*eVF1_V(1) + eV(2)*eVF1_V(2) +  eV(1)*eVF1_V(2) + eV(2)*eVF1_V(1) );
+                f_c11_vf2 = detJ*( eV(1)*eVF2_V(1) + eV(2)*eVF2_V(2) +  eV(1)*eVF2_V(2) + eV(2)*eVF2_V(1) );
+                f_c11_vf3 = detJ*( eV(1)*eVF3_V(1) + eV(2)*eVF3_V(2) +  eV(1)*eVF3_V(2) + eV(2)*eVF3_V(1) );
+                f_c11_vf4 = detJ*( eV(1)*eVF4_V(1) + eV(2)*eVF4_V(2) +  eV(1)*eVF4_V(2) + eV(2)*eVF4_V(1) );
+                f_c11_vf5 = detJ*( eV(1)*eVF5_V(1) + eV(2)*eVF5_V(2) +  eV(1)*eVF5_V(2) + eV(2)*eVF5_V(1) );
                                 
-                % f_c33 - REDUCED INTEGRATION
-                f_c33_vf1 = detJ*(eVr(3)*eVF1_Vr(3));
-                f_c33_vf2 = detJ*(eVr(3)*eVF2_Vr(3));
-                f_c33_vf3 = detJ*(eVr(3)*eVF3_Vr(3));
-                f_c33_vf4 = detJ*(eVr(3)*eVF4_Vr(3));
-                f_c33_vf5 = detJ*(eVr(3)*eVF5_Vr(3));              
+                % f_c33
+                f_c33_vf1 = detJ*(eV(3)*eVF1_V(3));
+                f_c33_vf2 = detJ*(eV(3)*eVF2_V(3));
+                f_c33_vf3 = detJ*(eV(3)*eVF3_V(3));
+                f_c33_vf4 = detJ*(eV(3)*eVF4_V(3));
+                f_c33_vf5 = detJ*(eV(3)*eVF5_V(3));              
                 
-                % f_c44 - FULL INTEGRATION
-                f_c44_vf1 = detJ*(eVf(4)*eVF1_Vf(4) - 2*eVf(2)*eVF1_Vf(1) - 2*eVf(1)*eVF1_Vf(2)); 
-                f_c44_vf2 = detJ*(eVf(4)*eVF2_Vf(4) - 2*eVf(2)*eVF2_Vf(1) - 2*eVf(1)*eVF2_Vf(2)); 
-                f_c44_vf3 = detJ*(eVf(4)*eVF3_Vf(4) - 2*eVf(2)*eVF3_Vf(1) - 2*eVf(1)*eVF3_Vf(2)); 
-                f_c44_vf4 = detJ*(eVf(4)*eVF4_Vf(4) - 2*eVf(2)*eVF4_Vf(1) - 2*eVf(1)*eVF4_Vf(2)); 
-                f_c44_vf5 = detJ*(eVf(4)*eVF5_Vf(4) - 2*eVf(2)*eVF5_Vf(1) - 2*eVf(1)*eVF5_Vf(2)); 
+                % f_c44
+                f_c44_vf1 = detJ*(eV(4)*eVF1_V(4) - 2*eV(2)*eVF1_V(1) - 2*eV(1)*eVF1_V(2)); 
+                f_c44_vf2 = detJ*(eV(4)*eVF2_V(4) - 2*eV(2)*eVF2_V(1) - 2*eV(1)*eVF2_V(2)); 
+                f_c44_vf3 = detJ*(eV(4)*eVF3_V(4) - 2*eV(2)*eVF3_V(1) - 2*eV(1)*eVF3_V(2)); 
+                f_c44_vf4 = detJ*(eV(4)*eVF4_V(4) - 2*eV(2)*eVF4_V(1) - 2*eV(1)*eVF4_V(2)); 
+                f_c44_vf5 = detJ*(eV(4)*eVF5_V(4) - 2*eV(2)*eVF5_V(1) - 2*eV(1)*eVF5_V(2)); 
                 
-                % f_c66 - FULL INTEGRATION
-                f_c66_vf1 = detJ*(eVf(6)*eVF1_Vf(6) + eVf(5)*eVF1_Vf(5)); 
-                f_c66_vf2 = detJ*(eVf(6)*eVF2_Vf(6) + eVf(5)*eVF2_Vf(5)); 
-                f_c66_vf3 = detJ*(eVf(6)*eVF3_Vf(6) + eVf(5)*eVF3_Vf(5)); 
-                f_c66_vf4 = detJ*(eVf(6)*eVF4_Vf(6) + eVf(5)*eVF4_Vf(5)); 
-                f_c66_vf5 = detJ*(eVf(6)*eVF5_Vf(6) + eVf(5)*eVF5_Vf(5));                 
+                % f_c66
+                f_c66_vf1 = detJ*(eV(6)*eVF1_V(6) + eV(5)*eVF1_V(5)); 
+                f_c66_vf2 = detJ*(eV(6)*eVF2_V(6) + eV(5)*eVF2_V(5)); 
+                f_c66_vf3 = detJ*(eV(6)*eVF3_V(6) + eV(5)*eVF3_V(5)); 
+                f_c66_vf4 = detJ*(eV(6)*eVF4_V(6) + eV(5)*eVF4_V(5)); 
+                f_c66_vf5 = detJ*(eV(6)*eVF5_V(6) + eV(5)*eVF5_V(5));                 
                 
-                % f_c13 - REDUCED INTEGRATION
-                f_c13_vf1 = detJ*( eVr(1)*eVF1_Vr(3) + eVr(2)*eVF1_Vr(3) + eVr(3)*eVF1_Vr(1) + eVr(3)*eVF1_Vr(2));
-                f_c13_vf2 = detJ*( eVr(1)*eVF2_Vr(3) + eVr(2)*eVF2_Vr(3) + eVr(3)*eVF2_Vr(1) + eVr(3)*eVF2_Vr(2));
-                f_c13_vf3 = detJ*( eVr(1)*eVF3_Vr(3) + eVr(2)*eVF3_Vr(3) + eVr(3)*eVF3_Vr(1) + eVr(3)*eVF3_Vr(2));
-                f_c13_vf4 = detJ*( eVr(1)*eVF4_Vr(3) + eVr(2)*eVF4_Vr(3) + eVr(3)*eVF4_Vr(1) + eVr(3)*eVF4_Vr(2));
-                f_c13_vf5 = detJ*( eVr(1)*eVF5_Vr(3) + eVr(2)*eVF5_Vr(3) + eVr(3)*eVF5_Vr(1) + eVr(3)*eVF5_Vr(2));
+                % f_c13
+                f_c13_vf1 = detJ*( eV(1)*eVF1_V(3) + eV(2)*eVF1_V(3) + eV(3)*eVF1_V(1) + eV(3)*eVF1_V(2));
+                f_c13_vf2 = detJ*( eV(1)*eVF2_V(3) + eV(2)*eVF2_V(3) + eV(3)*eVF2_V(1) + eV(3)*eVF2_V(2));
+                f_c13_vf3 = detJ*( eV(1)*eVF3_V(3) + eV(2)*eVF3_V(3) + eV(3)*eVF3_V(1) + eV(3)*eVF3_V(2));
+                f_c13_vf4 = detJ*( eV(1)*eVF4_V(3) + eV(2)*eVF4_V(3) + eV(3)*eVF4_V(1) + eV(3)*eVF4_V(2));
+                f_c13_vf5 = detJ*( eV(1)*eVF5_V(3) + eV(2)*eVF5_V(3) + eV(3)*eVF5_V(1) + eV(3)*eVF5_V(2));
                                
                 % A matrix
                 a = [f_c11_vf1 f_c33_vf1 f_c44_vf1 f_c66_vf1 f_c13_vf1; ...
@@ -377,7 +348,7 @@ end
 
 % Get number of elements with negative jacobians
 countNegJac = length(unique(elemNegJac));
-disp(sprintf('There were %d elements with negative Jacobians.', countNegJac));
+fprintf('There were %d elements with negative Jacobians.', countNegJac);
 
 % Close wait bar
 close(WH);

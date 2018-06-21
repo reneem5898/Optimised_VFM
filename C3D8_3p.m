@@ -17,8 +17,8 @@ function [C1, C2, C3, C4, H] = C3D8_3p(U, nodesSubZone, elemSubZone, globalNodeN
 %          2) H - matrix ((# nodes x nodal DOFs) x (# nodes x nodal DOFs))
 %
 % Note: This reduced integration method utilises the uniform strain
-% formulation from Flanagan 1981 and full integration. This is the same 
-% method used by Abaqus in C3D8 elements. 
+% formulation from Flanagan 1981 and full integration. This is the same
+% method used by Abaqus in C3D8 elements.
 %
 % Renee Miller
 % 28 June 2017
@@ -56,7 +56,7 @@ WH = waitbar(0, 'Assembling global matrices...');
 
 % Loop through each element
 for i = 1:size(elemSubZone,1)
-
+    
     % Update waitbar to give user an indication of time
     percentComplete = i/size(elemSubZone,1);
     waitbar(percentComplete, WH, sprintf('%.2f%% complete...', 100*percentComplete))
@@ -88,46 +88,20 @@ for i = 1:size(elemSubZone,1)
     %% Compute reduced integration B matrix - Uniform strain method - Flanagan 1981
     
     % Make B matrix - Flanagan 1981 - Appendix I
-    Br_main = makeBmatrix(X, Y, Z);
+    Br = makeBmatrix(X, Y, Z);
     
     % Calculate element volume using uniform strain formulation - Flanagan 1981
     detJ = calcVolumeUniformStrain(X, Y, Z);
     
     % Divide B matrix by element volume to get B matrix for element
-    Br = Br_main/detJ; % Reduced integration B matrix
+    Br = Br/detJ; % Reduced integration B matrix
     
-    % Calculate strain: B*U
-    eVr = Br*Ue; % Strain of measured displacements using reduced integration
+    % Compute the dilatational part of Br
+    tmp = sum(Br(1:3,:),1);
+    Br_dil = 1/3 * [tmp; tmp; tmp; zeros(1, length(tmp)); zeros(1, length(tmp)); zeros(1, length(tmp))];
     
-    % Convert strain to square tensor
-    eR = [eVr(1) 0.5*eVr(4) 0.5*eVr(5); ...
-        0.5*eVr(4) eVr(2) 0.5*eVr(6);...
-        0.5*eVr(5) 0.5*eVr(6) eVr(3)];
     
-    % Rotate strain tensor
-    eRotR = L * eR * L';
-    
-%     % Put strain tensor back into vector
-%     eVr = [eRotR(1,1); eRotR(2,2); eRotR(3,3); 2*eRotR(1,2); 2*eRotR(1,3); 2*eRotR(2,3)];
-    
-    % Calculate rotated (reduced) B matrix for calculation of virtual displacement fields
-    eVF11r = L(1,1)*L(1,1)*Br(1,:) + L(1,2)*L(1,1)*0.5*Br(4,:) + L(1,1)*L(1,3)*0.5*Br(5,:) + L(1,1)*L(1,2)*0.5*Br(4,:) + L(1,2)*L(1,2)*Br(2,:) + ...
-        L(1,3)*L(1,2)*0.5*Br(6,:) + L(1,1)*L(1,3)*0.5*Br(5,:) + L(1,2)*L(1,3)*0.5*Br(6,:) + L(1,3)*L(1,3)*Br(3,:);
-    eVF12r = L(2,1)*L(1,1)*Br(1,:) + L(2,2)*L(1,1)*0.5*Br(4,:) + L(2,3)*L(1,1)*0.5*Br(5,:) + L(2,1)*L(1,2)*0.5*Br(4,:) + L(2,2)*L(1,2)*Br(2,:) + ...
-        L(2,3)*L(1,2)*0.5*Br(6,:) + L(2,1)*L(1,3)*0.5*Br(5,:) + L(2,2)*L(1,3)*0.5*Br(6,:) + L(2,3)*L(1,3)*Br(3,:);
-    eVF13r = L(3,1)*L(1,1)*Br(1,:) + L(3,2)*L(1,1)*0.5*Br(4,:) + L(3,3)*L(1,1)*0.5*Br(5,:) + L(3,1)*L(1,2)*0.5*Br(4,:) + L(3,2)*L(1,2)*Br(2,:) + ...
-        L(3,3)*L(1,2)*0.5*Br(6,:) + L(3,1)*L(1,3)*0.5*Br(5,:) + L(3,2)*L(1,3)*0.5*Br(6,:) + L(3,3)*L(1,3)*Br(3,:);
-    eVF22r = L(2,1)*L(2,1)*Br(1,:) + L(2,2)*L(2,1)*0.5*Br(4,:) + L(2,3)*L(2,1)*0.5*Br(5,:) + L(2,1)*L(2,2)*0.5*Br(4,:) + L(2,2)*L(2,2)*Br(2,:) + ...
-        L(2,3)*L(2,2)*0.5*Br(6,:) + L(2,1)*L(2,3)*0.5*Br(5,:) + L(2,2)*L(2,3)*0.5*Br(6,:) + L(2,3)*L(2,3)*Br(3,:);
-    eVF23r = L(3,1)*L(2,1)*Br(1,:) + L(3,2)*L(2,1)*0.5*Br(4,:) + L(3,3)*L(2,1)*0.5*Br(5,:) + L(3,1)*L(2,2)*0.5*Br(4,:) + L(3,2)*L(2,2)*Br(2,:) + ...
-        L(3,3)*L(2,2)*0.5*Br(6,:) + L(3,1)*L(2,3)*0.5*Br(5,:) + L(3,2)*L(2,3)*0.5*Br(6,:) + L(3,3)*L(2,3)*Br(3,:);
-    eVF33r = L(3,1)*L(3,1)*Br(1,:) + L(3,2)*L(3,1)*0.5*Br(4,:) + L(3,3)*L(3,1)*0.5*Br(5,:) + L(3,1)*L(3,2)*0.5*Br(4,:) + L(3,2)*L(3,2)*Br(2,:) + ...
-        L(3,3)*L(3,2)*0.5*Br(6,:) + L(3,1)*L(3,3)*0.5*Br(5,:) + L(3,2)*L(3,3)*0.5*Br(6,:) + L(3,3)*L(3,3)*Br(3,:);
-    
-    % Rotated Br matrix - used to derive constraints
-    Br_rot = [eVF11r; eVF22r; eVF33r; 2*eVF12r; 2*eVF13r; 2*eVF23r];
-    
-    %% Start to calculate full integration strain matrix
+    %% Loop through Gauss Points
     for j = 1:length(zeta)
         o = zeta(j);
         
@@ -166,61 +140,74 @@ for i = 1:size(elemSubZone,1)
                         0            dNdXYZ(3,c)  dNdXYZ(2,c)];
                     Bf = [Bf Bi];
                 end
-                                             
+                
+                %%%%%%%%% Selectively Reduced Stiffness Matrix %%%%%%%%%%%%
+                % Full integration used for deviatoric part and reduced
+                % integration used for dilational part (Hughes 1980)
+                
+                % Compute the dilatational part of Bf and Br
+                tmp = sum(Bf(1:3,:),1);
+                Bf_dil = 1/3 * [tmp; tmp; tmp; zeros(1, length(tmp)); zeros(1, length(tmp)); zeros(1, length(tmp))];
+                
+                % Compute the deviatoric part of Bf
+                Bf_dev = Bf - Bf_dil;
+                
+                % Compute B_bar (the final B matrix to use)
+                B_bar = Bf_dev + Br_dil;
+                
+                
                 % Calculate strain: B*U
-                eVf = Bf*Ue; % Strain of measured displacements using full integration
+                eV = B_bar*Ue;
                 
                 % Convert strains to square strain tensor
-                eF = [eVf(1) 0.5*eVf(4) 0.5*eVf(5); ...
-                    0.5*eVf(4) eVf(2) 0.5*eVf(6);...
-                    0.5*eVf(5) 0.5*eVf(6) eVf(3)];
+                e = [eV(1) 0.5*eV(4) 0.5*eV(5); ...
+                    0.5*eV(4) eV(2) 0.5*eV(6);...
+                    0.5*eV(5) 0.5*eV(6) eV(3)];
                 
                 % Rotate strain tensors
-                eRotF = L * eF * L';
+                eRot = L * e * L';
                 
                 % Put strain tensor back into vector form
-                eVf = [eRotF(1,1); eRotF(2,2); eRotF(3,3); 2*eRotF(1,2); 2*eRotF(1,3); 2*eRotF(2,3)];
-                               
+                eV = [eRot(1,1); eRot(2,2); eRot(3,3); 2*eRot(1,2); 2*eRot(1,3); 2*eRot(2,3)];
+                
                 % Calculate rotated (full) B matrix for calculation of virtual displacement fields
-                eVF11r = L(1,1)*L(1,1)*Bf(1,:) + L(1,2)*L(1,1)*0.5*Bf(4,:) + L(1,1)*L(1,3)*0.5*Bf(5,:) + L(1,1)*L(1,2)*0.5*Bf(4,:) + L(1,2)*L(1,2)*Bf(2,:) + ...
-                    L(1,3)*L(1,2)*0.5*Bf(6,:) + L(1,1)*L(1,3)*0.5*Bf(5,:) + L(1,2)*L(1,3)*0.5*Bf(6,:) + L(1,3)*L(1,3)*Bf(3,:);
-                eVF12r = L(2,1)*L(1,1)*Bf(1,:) + L(2,2)*L(1,1)*0.5*Bf(4,:) + L(2,3)*L(1,1)*0.5*Bf(5,:) + L(2,1)*L(1,2)*0.5*Bf(4,:) + L(2,2)*L(1,2)*Bf(2,:) + ...
-                    L(2,3)*L(1,2)*0.5*Bf(6,:) + L(2,1)*L(1,3)*0.5*Bf(5,:) + L(2,2)*L(1,3)*0.5*Bf(6,:) + L(2,3)*L(1,3)*Bf(3,:);
-                eVF13r = L(3,1)*L(1,1)*Bf(1,:) + L(3,2)*L(1,1)*0.5*Bf(4,:) + L(3,3)*L(1,1)*0.5*Bf(5,:) + L(3,1)*L(1,2)*0.5*Bf(4,:) + L(3,2)*L(1,2)*Bf(2,:) + ...
-                    L(3,3)*L(1,2)*0.5*Bf(6,:) + L(3,1)*L(1,3)*0.5*Bf(5,:) + L(3,2)*L(1,3)*0.5*Bf(6,:) + L(3,3)*L(1,3)*Bf(3,:);
-                eVF22r = L(2,1)*L(2,1)*Bf(1,:) + L(2,2)*L(2,1)*0.5*Bf(4,:) + L(2,3)*L(2,1)*0.5*Bf(5,:) + L(2,1)*L(2,2)*0.5*Bf(4,:) + L(2,2)*L(2,2)*Bf(2,:) + ...
-                    L(2,3)*L(2,2)*0.5*Bf(6,:) + L(2,1)*L(2,3)*0.5*Bf(5,:) + L(2,2)*L(2,3)*0.5*Bf(6,:) + L(2,3)*L(2,3)*Bf(3,:);
-                eVF23r = L(3,1)*L(2,1)*Bf(1,:) + L(3,2)*L(2,1)*0.5*Bf(4,:) + L(3,3)*L(2,1)*0.5*Bf(5,:) + L(3,1)*L(2,2)*0.5*Bf(4,:) + L(3,2)*L(2,2)*Bf(2,:) + ...
-                    L(3,3)*L(2,2)*0.5*Bf(6,:) + L(3,1)*L(2,3)*0.5*Bf(5,:) + L(3,2)*L(2,3)*0.5*Bf(6,:) + L(3,3)*L(2,3)*Bf(3,:);
-                eVF33r = L(3,1)*L(3,1)*Bf(1,:) + L(3,2)*L(3,1)*0.5*Bf(4,:) + L(3,3)*L(3,1)*0.5*Bf(5,:) + L(3,1)*L(3,2)*0.5*Bf(4,:) + L(3,2)*L(3,2)*Bf(2,:) + ...
-                    L(3,3)*L(3,2)*0.5*Bf(6,:) + L(3,1)*L(3,3)*0.5*Bf(5,:) + L(3,2)*L(3,3)*0.5*Bf(6,:) + L(3,3)*L(3,3)*Bf(3,:);
+                eVF11 = L(1,1)*L(1,1)*B_bar(1,:) + L(1,2)*L(1,1)*0.5*B_bar(4,:) + L(1,1)*L(1,3)*0.5*B_bar(5,:) + L(1,1)*L(1,2)*0.5*B_bar(4,:) + L(1,2)*L(1,2)*B_bar(2,:) + ...
+                    L(1,3)*L(1,2)*0.5*B_bar(6,:) + L(1,1)*L(1,3)*0.5*B_bar(5,:) + L(1,2)*L(1,3)*0.5*B_bar(6,:) + L(1,3)*L(1,3)*B_bar(3,:);
+                eVF12 = L(2,1)*L(1,1)*B_bar(1,:) + L(2,2)*L(1,1)*0.5*B_bar(4,:) + L(2,3)*L(1,1)*0.5*B_bar(5,:) + L(2,1)*L(1,2)*0.5*B_bar(4,:) + L(2,2)*L(1,2)*B_bar(2,:) + ...
+                    L(2,3)*L(1,2)*0.5*B_bar(6,:) + L(2,1)*L(1,3)*0.5*B_bar(5,:) + L(2,2)*L(1,3)*0.5*B_bar(6,:) + L(2,3)*L(1,3)*B_bar(3,:);
+                eVF13 = L(3,1)*L(1,1)*B_bar(1,:) + L(3,2)*L(1,1)*0.5*B_bar(4,:) + L(3,3)*L(1,1)*0.5*B_bar(5,:) + L(3,1)*L(1,2)*0.5*B_bar(4,:) + L(3,2)*L(1,2)*B_bar(2,:) + ...
+                    L(3,3)*L(1,2)*0.5*B_bar(6,:) + L(3,1)*L(1,3)*0.5*B_bar(5,:) + L(3,2)*L(1,3)*0.5*B_bar(6,:) + L(3,3)*L(1,3)*B_bar(3,:);
+                eVF22 = L(2,1)*L(2,1)*B_bar(1,:) + L(2,2)*L(2,1)*0.5*B_bar(4,:) + L(2,3)*L(2,1)*0.5*B_bar(5,:) + L(2,1)*L(2,2)*0.5*B_bar(4,:) + L(2,2)*L(2,2)*B_bar(2,:) + ...
+                    L(2,3)*L(2,2)*0.5*B_bar(6,:) + L(2,1)*L(2,3)*0.5*B_bar(5,:) + L(2,2)*L(2,3)*0.5*B_bar(6,:) + L(2,3)*L(2,3)*B_bar(3,:);
+                eVF23r = L(3,1)*L(2,1)*B_bar(1,:) + L(3,2)*L(2,1)*0.5*B_bar(4,:) + L(3,3)*L(2,1)*0.5*B_bar(5,:) + L(3,1)*L(2,2)*0.5*B_bar(4,:) + L(3,2)*L(2,2)*B_bar(2,:) + ...
+                    L(3,3)*L(2,2)*0.5*B_bar(6,:) + L(3,1)*L(2,3)*0.5*B_bar(5,:) + L(3,2)*L(2,3)*0.5*B_bar(6,:) + L(3,3)*L(2,3)*B_bar(3,:);
+                eVF33 = L(3,1)*L(3,1)*B_bar(1,:) + L(3,2)*L(3,1)*0.5*B_bar(4,:) + L(3,3)*L(3,1)*0.5*B_bar(5,:) + L(3,1)*L(3,2)*0.5*B_bar(4,:) + L(3,2)*L(3,2)*B_bar(2,:) + ...
+                    L(3,3)*L(3,2)*0.5*B_bar(6,:) + L(3,1)*L(3,3)*0.5*B_bar(5,:) + L(3,2)*L(3,3)*0.5*B_bar(6,:) + L(3,3)*L(3,3)*B_bar(3,:);
                 
                 % Rotated B matrix - used to derive constraints
-                Bf_rot = [eVF11r; eVF22r; eVF33r; 2*eVF12r; 2*eVF13r; 2*eVF23r];
+                B_bar_rot = [eVF11; eVF22; eVF33; 2*eVF12; 2*eVF13; 2*eVF23r];
                 
                 
                 %% Put constraints together
                 
                 % Calculate constraints: c1, c2, c3, and c4
-                %%%%%%%%%%%%%%%%%% K - REDUCED INTEGRATION %%%%%%%%%%%%%%%%%%%%%%%
-                c_k = trace(eRotR)*sum(Br_rot(1:3,:),1)*detJ; 
-                %%%%%%%%%%%%%%%%%% G12 - FULL INTEGRATION %%%%%%%%%%%%%%%%%%%%%%%
-                c_G12 = detJ*(8/9.*(eVf(1)*Bf_rot(1,:) + eVf(2)*Bf_rot(2,:) + eVf(1)*Bf_rot(2,:) + eVf(2)*Bf_rot(1,:)) - 4/9.*eVf(3)*Bf_rot(3,:) ...
-                    + 2/9.*(eVf(1)*Bf_rot(3,:) + eVf(3)*Bf_rot(1,:) + eVf(2)*Bf_rot(3,:) + eVf(3)*Bf_rot(2,:)) + 2.*(eVf(4)*0.5*Bf_rot(4,:) - eVf(1)*Bf_rot(2,:) - eVf(2)*Bf_rot(1,:)) ); 
-                %%%%%%%%%%%%%%%%%% G13 - FULL INTEGRATION %%%%%%%%%%%%%%%%%%%%%%%
-                c_G13 = detJ*(2*eVf(6)*0.5*Bf_rot(6,:) + 2*eVf(5)*0.5*Bf_rot(5,:)); 
-                %%%%%%%%%%%%%%%%%% tau - FULL INTEGRATION %%%%%%%%%%%%%%%%%%%%%%%
-                c_T = detJ*( 4/9.*(eVf(1)*Bf_rot(1,:) + eVf(2)*Bf_rot(2,:) + eVf(1)*Bf_rot(2,:) + eVf(2)*Bf_rot(1,:)) + ...
-                   16/9.*eVf(3)*Bf_rot(3,:) - 8/9.*(eVf(1)*Bf_rot(3,:) + eVf(3)*Bf_rot(1,:) + eVf(2)*Bf_rot(3,:) + eVf(3)*Bf_rot(2,:))); 
-%                 c_T = detJ*( 4/9.*(eVr(1)*Br_rot(1,:) + eVr(2)*Br_rot(2,:) + eVr(1)*Br_rot(2,:) + eVr(2)*Br_rot(1,:)) + ...
-%                     16/9.*eVr(3)*Br_rot(3,:) - 8/9.*(eVr(1)*Br_rot(3,:) + eVr(3)*Br_rot(1,:) + eVr(2)*Br_rot(3,:) + eVr(3)*Br_rot(2,:)));
+                %%%%%%%%%%%%%%%%%% K %%%%%%%%%%%%%%%%%%%%%%%
+                c_k = trace(eRot)*sum(B_bar_rot(1:3,:),1)*detJ;
+                %%%%%%%%%%%%%%%%%% G12 %%%%%%%%%%%%%%%%%%%%%%%
+                c_G12 = detJ*(8/9.*(eV(1)*B_bar_rot(1,:) + eV(2)*B_bar_rot(2,:) + eV(1)*B_bar_rot(2,:) + eV(2)*B_bar_rot(1,:)) - 4/9.*eV(3)*B_bar_rot(3,:) ...
+                    + 2/9.*(eV(1)*B_bar_rot(3,:) + eV(3)*B_bar_rot(1,:) + eV(2)*B_bar_rot(3,:) + eV(3)*B_bar_rot(2,:)) + 2.*(eV(4)*0.5*B_bar_rot(4,:) - eV(1)*B_bar_rot(2,:) - eV(2)*B_bar_rot(1,:)) );
+                %%%%%%%%%%%%%%%%%% G13 %%%%%%%%%%%%%%%%%%%%%%%
+                c_G13 = detJ*(2*eV(6)*0.5*B_bar_rot(6,:) + 2*eV(5)*0.5*B_bar_rot(5,:));
+                %%%%%%%%%%%%%%%%%% tau %%%%%%%%%%%%%%%%%%%%%%%
+                c_T = detJ*( 4/9.*(eV(1)*B_bar_rot(1,:) + eV(2)*B_bar_rot(2,:) + eV(1)*B_bar_rot(2,:) + eV(2)*B_bar_rot(1,:)) + ...
+                    16/9.*eV(3)*B_bar_rot(3,:) - 8/9.*(eV(1)*B_bar_rot(3,:) + eV(3)*B_bar_rot(1,:) + eV(2)*B_bar_rot(3,:) + eV(3)*B_bar_rot(2,:)));
                 
-                % Calculate the H matrix -- full integration
-                N11 = (detJ^2)*(56/27*(Bf_rot(1,:).'*Bf_rot(1,:) + Bf_rot(2,:).'*Bf_rot(2,:)) - 104/27*(Bf_rot(1,:).'*Bf_rot(2,:)) - 8/27*(Bf_rot(1,:).'*Bf_rot(3,:) + Bf_rot(2,:).'*Bf_rot(3,:)) ...
-                    + 8/27*(Bf_rot(3,:).'*Bf_rot(3,:)) + 4*0.5*Bf_rot(4,:).'*0.5*Bf_rot(4,:));
-                N22 = (detJ^2)*(4*0.5*Bf_rot(5,:).'*0.5*Bf_rot(5,:) + 4*0.5*Bf_rot(6,:).'*0.5*Bf_rot(6,:));
-                N33 = (detJ^2)*(128/27*(Bf_rot(1,:).'*Bf_rot(3,:) + Bf_rot(2,:).'*Bf_rot(3,:) + Bf_rot(3,:).'*Bf_rot(3,:)) + 32/27*(Bf_rot(1,:).'*Bf_rot(1,:) + Bf_rot(2,:).'*Bf_rot(2,:) + 2*Bf_rot(1,:).'*Bf_rot(2,:)));
-                N13 = (detJ^2)*(-8/27*(Bf_rot(1,:).'*Bf_rot(1,:) + 2*Bf_rot(1,:).'*Bf_rot(2,:) + Bf_rot(2,:).'*Bf_rot(2,:)) + 64/81*(Bf_rot(1,:).'*Bf_rot(3,:) + Bf_rot(2,:).'*Bf_rot(3,:)) - 32/27*(Bf_rot(3,:).'*Bf_rot(3,:)));
+                % Calculate the H matrix
+                N11 = (detJ^2)*(56/27*(B_bar_rot(1,:).'*B_bar_rot(1,:) + B_bar_rot(2,:).'*B_bar_rot(2,:)) - 104/27*(B_bar_rot(1,:).'*B_bar_rot(2,:)) - 8/27*(B_bar_rot(1,:).'*B_bar_rot(3,:) + B_bar_rot(2,:).'*B_bar_rot(3,:)) ...
+                    + 8/27*(B_bar_rot(3,:).'*B_bar_rot(3,:)) + 4*0.5*B_bar_rot(4,:).'*0.5*B_bar_rot(4,:));
+                N22 = (detJ^2)*(4*0.5*B_bar_rot(5,:).'*0.5*B_bar_rot(5,:) + 4*0.5*B_bar_rot(6,:).'*0.5*B_bar_rot(6,:));
+                N33 = (detJ^2)*(128/27*(B_bar_rot(1,:).'*B_bar_rot(3,:) + B_bar_rot(2,:).'*B_bar_rot(3,:) + B_bar_rot(3,:).'*B_bar_rot(3,:)) + 32/27*(B_bar_rot(1,:).'*B_bar_rot(1,:) + B_bar_rot(2,:).'*B_bar_rot(2,:) + 2*B_bar_rot(1,:).'*B_bar_rot(2,:)));
+                N13 = (detJ^2)*(-8/27*(B_bar_rot(1,:).'*B_bar_rot(1,:) + 2*B_bar_rot(1,:).'*B_bar_rot(2,:) + B_bar_rot(2,:).'*B_bar_rot(2,:)) + 64/81*(B_bar_rot(1,:).'*B_bar_rot(3,:) + B_bar_rot(2,:).'*B_bar_rot(3,:)) - 32/27*(B_bar_rot(3,:).'*B_bar_rot(3,:)));
                 
                 G12_app = paramInit(1);
                 G13_app = paramInit(2);
@@ -228,7 +215,7 @@ for i = 1:size(elemSubZone,1)
                 
                 h = G12_app^2 * N11  +  G12_app*T_app * 2 * N13  +  G13_app^2 * N22  +  T_app^2 * N33;
                 %h = conj(G12_app)*G12_app * N11  +  G12_app*conj(T_app) * N13  + conj(G12_app)*T_app * N13 +  conj(G13_app)*G13_app * N22  +  conj(T_app)*T_app * N33;
-				
+                
                 
                 % Sum the weighted functions
                 C1_1 = C1_1 + w(l).*c_k;
@@ -287,7 +274,6 @@ for i = 1:size(elemSubZone,1)
     for a = 1:length(h_3)
         for b = 1:length(h_3)
             c = c + 1;
-            %H(localNodeIdcs(a), localNodeIdcs(b)) = H(localNodeIdcs(a), localNodeIdcs(b)) + h_3(a,b); %%%%%%% SLOW %%%%%%
             row_ind(i,c) = localNodeIdcs(a);
             col_ind(i,c) = localNodeIdcs(b);
             h_ind(i,c) = h_3(a,b);

@@ -15,7 +15,7 @@ function [FK, FG, b, strain] = solveIsoVFM_C3D8(u, uVF, rho, omega, nodesSubZone
 %         8) elemType - element type: 'C3D8R', 'C3D8', 'C3D8F'
 %         9) GaussPoints - number of Gauss points per direction (1, 2, 3)
 %
-% Outputs: 1) fk & fg (LHS) 
+% Outputs: 1) fk & fg (LHS)
 %          2) b (RHS)
 %          3) strain - to validate with Abaqus
 %
@@ -58,17 +58,17 @@ for i = 1:size(elemSubZone,1)
     % Update waitbar to give user an iclar allndication of time
     percentComplete = i/size(elemSubZone,1);
     waitbar(percentComplete, WH, sprintf('%.2f%% complete...', 100*percentComplete))
-
+    
     % Initialise variables and matrices
     A1_1 = 0; A2_1 = 0; B_1 = 0;
     A1_2 = 0; A2_2 = 0; B_2 = 0;
-    A1_3 = 0; A2_3 = 0; B_3 = 0; 
+    A1_3 = 0; A2_3 = 0; B_3 = 0;
     
     % Get vectors of nodal coordinates
     [X, Y, Z] = getElemCoords(nodesSubZone, elemSubZone, i);
     
-    %% Indexing - there are two types of node indexing - local and global. 
-    % Local refers to the node index in the subzone and global refers to 
+    %% Indexing - there are two types of node indexing - local and global.
+    % Local refers to the node index in the subzone and global refers to
     % the node index in the whole model.
     
     % Get indics of nodal DOF in global list
@@ -83,13 +83,17 @@ for i = 1:size(elemSubZone,1)
     
     % Make B matrix - Flanagan 1981 - Appendix I
     Br = makeBmatrix(X, Y, Z);
-       
+    
     % Calculate element volume using uniform strain formulation - Flanagan 1981
     elementVolume = calcVolumeUniformStrain(X, Y, Z);
     
     % Divide B matrix by element volume to get B matrix for element
-    % Reduced integration used for volumetric part of strain 
+    % Reduced integration used for volumetric part of strain
     Br = Br/elementVolume;
+    
+    % Compute the dilatational part of Br
+    tmp = sum(Br(1:3,:),1);
+    Br_dil = 1/3 * [tmp; tmp; tmp; zeros(1, length(tmp)); zeros(1, length(tmp)); zeros(1, length(tmp))];
     
     for j = 1:length(zeta)
         o = zeta(j);
@@ -114,7 +118,7 @@ for i = 1:size(elemSubZone,1)
                 
                 ShapeFuns = [N1 N2 N3 N4 N5 N6 N7 N8];
                 
-                % Compile N               
+                % Compile N
                 %  _                                                       _
                 % | N1 0 0 N2 0 0 N3 0 0 N4 0 0 N5 0 0 N6 0 0 N7 0 0 N8 0 0 |
                 % | 0 N1 0 0 N2 0 0 N3 0 0 N4 0 0 N5 0 0 N6 0 0 N7 0 0 N8 0 |
@@ -151,54 +155,55 @@ for i = 1:size(elemSubZone,1)
                 Bf = [];
                 for c = 1:nodesPerElem %Loop through number of nodes per element
                     Bi = [dNdXYZ(1,c)     0              0; ...
-                          0            dNdXYZ(2,c)       0; ...
-                          0               0         dNdXYZ(3,c); ...
-                          dNdXYZ(2,c)  dNdXYZ(1,c)       0; ...
-                          dNdXYZ(3,c)     0         dNdXYZ(1,c); ...
-                          0            dNdXYZ(3,c)  dNdXYZ(2,c)];
+                        0            dNdXYZ(2,c)       0; ...
+                        0               0         dNdXYZ(3,c); ...
+                        dNdXYZ(2,c)  dNdXYZ(1,c)       0; ...
+                        dNdXYZ(3,c)     0         dNdXYZ(1,c); ...
+                        0            dNdXYZ(3,c)  dNdXYZ(2,c)];
                     Bf = [Bf Bi];
                 end
                 
-                % Combine rows 1-3 of Br with rows 4-6 of Bf to get 
-                % "selectively reduced" B matrix
-                %B = [Br(1:3,:); Bf(4:6,:)];
+                %%%%%%%%% Selectively Reduced Stiffness Matrix %%%%%%%%%%%%
+                % Full integration used for deviatoric part and reduced
+                % integration used for dilational part (Hughes 1980)
+                
+                % Compute the dilatational part of Bf and Br
+                tmp = sum(Bf(1:3,:),1);
+                Bf_dil = 1/3 * [tmp; tmp; tmp; zeros(1, length(tmp)); zeros(1, length(tmp)); zeros(1, length(tmp))];
+                
+                % Compute the deviatoric part of Bf
+                Bf_dev = Bf - Bf_dil;
+                
+                % Compute B_bar (the final B matrix to use)
+                B_bar = Bf_dev + Br_dil;
                 
                 % Calculate strain: B*U
-                eV_r = Br*Ue; % Strain of measured displacements
-                eV_f = Bf*Ue; % Fully integrated strain
-                eVF_V_r = Br*UeVF; % Strain of virtual displacement field
-                eVF_V_f = Bf*UeVF; % Fully integrated virtual strain
+                eV = B_bar*Ue; % Strain of measured displacements
+                eVF_V = B_bar*UeVF; % Strain of virtual displacement field
+                
                 
                 % Save strain from measured displacement field - compare to Abaqus (CHECK)
                 count = count + 1;
                 idx = (i-1)*GP + count;
-                strain(idx,:) = [i count eV_r(1:3).' eV_f(4:6).'];
+                strain(idx,:) = [i count eV.'];
                 
-                % Convert strains to square strain tensor
-                eF = [eV_f(1) 0.5*eV_f(4) 0.5*eV_f(5); ...
-                    0.5*eV_f(4) eV_f(2) 0.5*eV_f(6);...
-                    0.5*eV_f(5) 0.5*eV_f(6) eV_f(3)];
+                % Convert strains to square strain tensor                
+                e = [eV(1) 0.5*eV(4) 0.5*eV(5); ...
+                    0.5*eV(4) eV(2) 0.5*eV(6);...
+                    0.5*eV(5) 0.5*eV(6) eV(3)];
                 
-                eR = [eV_r(1) 0.5*eV_r(4) 0.5*eV_r(5); ...
-                    0.5*eV_r(4) eV_r(2) 0.5*eV_r(6);...
-                    0.5*eV_r(5) 0.5*eV_r(6) eV_r(3)];
+                eVF =[eVF_V(1) 0.5*eVF_V(4) 0.5*eVF_V(5); ...
+                    0.5*eVF_V(4) eVF_V(2) 0.5*eVF_V(6);...
+                    0.5*eVF_V(5) 0.5*eVF_V(6) eVF_V(3)];
                 
-                eVF_f =[eVF_V_f(1) 0.5*eVF_V_f(4) 0.5*eVF_V_f(5); ...
-                    0.5*eVF_V_f(4) eVF_V_f(2) 0.5*eVF_V_f(6);...
-                    0.5*eVF_V_f(5) 0.5*eVF_V_f(6) eVF_V_f(3)];
-                
-                eVF_r =[eVF_V_r(1) 0.5*eVF_V_r(4) 0.5*eVF_V_r(5); ...
-                    0.5*eVF_V_r(4) eVF_V_r(2) 0.5*eVF_V_r(6);...
-                    0.5*eVF_V_r(5) 0.5*eVF_V_r(6) eVF_V_r(3)];
-                                                            
                 % Calculate portion of constitutive law governed by bulk
                 % modulus
-                fk = trace(eR)*trace(eVF_r)*detJ;
+                fk = trace(e)*trace(eVF)*detJ;
                 
                 % Calculate portion of constitutive law which contributes to shear
                 % motion [2nd part should be zero since trace(eVF) = 0]
                 % Note: trace(A*B') = double dot product of two matrices
-                fg = 2*(trace(eF*eVF_f.') - (1/3)*trace(eF)*trace(eVF_f))*detJ; 
+                fg = 2*(trace(e*eVF.') - (1/3)*trace(e)*trace(eVF))*detJ;
                 
                 %%%%%%% RHS %%%%%%%
                 
@@ -252,7 +257,7 @@ end
 
 % Get number of elements with negative jacobians
 countNegJac = length(unique(elemNegJac));
-disp(sprintf('There were %d elements with negative Jacobians.', countNegJac));
+fprintf('There were %d elements with negative Jacobians.', countNegJac);
 
 % Close wait bar
 close(WH);

@@ -233,7 +233,7 @@ end
 
 % Get number of elements with negative jacobians
 countNegJac = length(unique(elemNegJac));
-disp(sprintf('There were %d elements with negative Jacobians.', countNegJac));
+fprintf('There were %d elements with negative Jacobians.', countNegJac);
 
 % Close wait bar
 close(WH);
