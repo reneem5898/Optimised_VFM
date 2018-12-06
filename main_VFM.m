@@ -106,11 +106,13 @@ end
 % Number of Gauss points in each direction - used for fully integrated elements only
 GaussPoints = 2;
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create diary file
 tmp = clock;
 diaryFile = sprintf('%s/logFile_optimisedVF_%dparam_%d%d%d_%d%d.txt', outDir, numParam, tmp(1), tmp(2), tmp(3), tmp(4), tmp(5));
 diary(diaryFile)
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load model data
@@ -122,12 +124,19 @@ disp('Loading model node and element data...');
 nodesFile = strcat(outDir, '/nodeCoords.txt');
 if exist(nodesFile, 'file')% CHANGED ON 11/04/18 FOR INFLATION + VIBRATION PROBLEM - RM
     n = load(nodesFile);
+    disp('Found deformed node file in output directory.')
 else
     n = load(strcat(modelDir,'/nodeCoords.txt'));
+    disp('Could not find deformed node file in output directory. Using undeformed nodal coordinates.')
 end
 
 % Each element = 1 row with eight node numbers
-e = load(strcat(modelDir,'/elems.txt'));
+elemFile = strcat(modelDir,'/elems.txt');
+if exist(elemFile, 'file')
+    e = load(elemFile);
+else
+    e = load(sprintf('%s/../elems.txt', modelDir));
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -144,18 +153,19 @@ for i = 1:length(n)
 end
 n( ~any(n,2), : ) = [];  %Remove zero rows
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Renumber nodes from 1
+%% Renumber nodes from 1 and fix element list
 
-[nnodes, elems] = renumberNodes(n(:,1), e);
-nodes = [nnodes' n(:,2:end)];
-
+if max(n(:,1) ~= length(n)
+    [nodes, elems] = renumberNodes(n, e);
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load boundary nodes (if available)
 
 % Load boundary condition nodes - if available
-bcNodesFile = strcat(modelDir,'/surfNodes.txt');
+bcNodesFile = strcat(modelDir,'/../surfNodes.txt');
 if exist(bcNodesFile, 'file')
     bcNodes = load(bcNodesFile);
 else
@@ -279,6 +289,7 @@ for m = 1:size(xRange,1)
                 elseif strcmp(elemType, 'C3D8')
                     % Selectively reduced integration type element - C3D8
                     [fk, fg, b, strain2] = solveIsoVFM_C3D8(U, uVF, rho, omega, nodesSubZone, elemSubZone, nodes(:,1));
+                    %[fk, fg, b, strain2] = solveIsoVFM_C3D8_elem(U, uVF, rho, omega, nodesSubZone, elemSubZone, nodes(:,1));
                     
                 else
                     % Fully integrated element

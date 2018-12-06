@@ -147,11 +147,9 @@ end
 n( ~any(n,2), : ) = [];  %Remove zero rows
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Renumber nodes from 1
+%% Renumber nodes from 1 and fix elements
 
-[nnodes, elems] = renumberNodes(n(:,1), e);
-nodes = [nnodes' n(:,2:end)];
-
+[nodes, elems] = renumberNodes(n, e);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load boundary nodes (if available)
@@ -342,7 +340,7 @@ if ~isempty(GaussianNoise)
                         %% ISOTROPIC MATERIAL MODEL
                         if numParam == 1
                             
-                            disp(sprintf('Running MC simulation #: %d\nRegion #: %d\n', ns, countZone));
+                            fprintf('Running MC simulation #: %d\nRegion #: %d\n', ns, countZone);
                             
                             % Calculate the numeric optimised virtual field
                             disp('Calculating the numeric virtual field...')
@@ -386,7 +384,7 @@ if ~isempty(GaussianNoise)
                                 % Count number of iterations
                                 iter = iter + 1;
                                 
-                                disp(sprintf('Running MC simulation #: %d\nRegion #: %d\nIteration #: %d\n', ns, countZone, iter));
+                                fprintf('Running MC simulation #: %d\nRegion #: %d\nIteration #: %d\n', ns, countZone, iter);
                                 
                                 % Qapp - approximate parameters to use to calculate virtual displacement field
                                 if ~exist('moduli','var')
@@ -419,8 +417,10 @@ if ~isempty(GaussianNoise)
                                 moduli = A\B
                                 
                                 % Calculate the percent change in estimated material parameters
-                                diffPerc = max(abs((moduli - paramEst)./paramEst))*100;
-                                disp(sprintf('Maximum change in parameters: %.2f%', diffPerc));
+                                diffPerc = max( abs((moduli - paramEst)./paramEst) )*100;
+                                fprintf('Maximum change in parameters: %.2f%\n\n', diffPerc);
+                                
+                                disp(diffPerc);
                                 
                             end
                             
@@ -448,7 +448,7 @@ if ~isempty(GaussianNoise)
                                 % Count number of iterations
                                 iter = iter + 1;
                                 
-                                disp(sprintf('Running MC simulation #: %d\nRegion #: %d\nIteration #: %d\n', ns, countZone, iter));
+                                fprintf('Running MC simulation #: %d\nRegion #: %d\nIteration #: %d\n', ns, countZone, iter);
                                 
                                 % Qapp - approximate parameters to use to calculate virtual displacement field
                                 if ~exist('moduli','var')
@@ -491,7 +491,7 @@ if ~isempty(GaussianNoise)
                                 %diffPerc = max(abs((moduli(3:4) - paramEst(3:4))./paramEst(3:4)))*100; % Only use parameters C44 and C66 to test for convergence - in incompressible media, C11, C33 and C13 are not reliably estimated
                                 %diffPerc = max(abs((moduli - paramEst)./paramEst))*100;
                                 diffPerc = max(abs((paramI - paramComp)./paramComp))*100;
-                                disp(sprintf('Maximum change in parameters: %.2f%', diffPerc));
+                                fprintf('Maximum change in parameters: %.2f%\n\n', diffPerc);
                                 
                             end
                             
@@ -566,7 +566,7 @@ else
                 %% ISOTROPIC MATERIAL MODEL
                 if numParam == 1
                     
-                    disp(sprintf('Running Region #: %d\n', countZone));
+                    fprintf('Running Region #: %d\n', countZone);
                     
                     % Calculate the numeric virtual field
                     disp('Calculating the numeric virtual field...')
@@ -610,7 +610,7 @@ else
                         % Count number of iterations
                         iter = iter + 1;
                         
-                        disp(sprintf('Running Region #: %d\nIteration #: %d\n', countZone, iter));
+                        fprintf('Running Region #: %d\nIteration #: %d\n', countZone, iter);
                         
                         % Qapp - approximate parameters to use to calculate virtual displacement field
                         if ~exist('moduli','var')
@@ -643,7 +643,7 @@ else
                         
                         % Calculate the percent change in estimated material parameters
                         diffPerc = max(abs((moduli - paramEst)./paramEst))*100;
-                        disp(sprintf('Maximum change in parameters: %.2f%', diffPerc));
+                        fprintf('Maximum change in parameters: %.2f%\n\n', diffPerc);
                         
                     end
                     
@@ -671,7 +671,7 @@ else
                         % Count number of iterations
                         iter = iter + 1;
                         
-                        disp(sprintf('Running Region #: %d\nIteration #: %d\n', countZone, iter));
+                        fprintf('Running Region #: %d\nIteration #: %d\n', countZone, iter);
                         
                         % Qapp - approximate parameters to use to calculate virtual displacement field
                         if ~exist('moduli','var')
@@ -714,7 +714,7 @@ else
                         %diffPerc = max(abs((moduli(3:4) - paramEst(3:4))./paramEst(3:4)))*100; % Only use parameters C44 and C66 to test for convergence - in incompressible media, C11, C33 and C13 are not reliably estimated
                         %diffPerc = max(abs((moduli - paramEst)./paramEst))*100;
                         diffPerc = max(abs((paramI - paramComp)./paramComp))*100;
-                        disp(sprintf('Maximum change in parameters: %.2f%', diffPerc));
+                        fprintf('Maximum change in parameters: %.2f%\n\n', diffPerc);
                         
                     end
                     

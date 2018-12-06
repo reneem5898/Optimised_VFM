@@ -12,7 +12,7 @@ function paramInit = varyParamStart(refParams)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Initialise list of parameters
-paramInit = length(refParams);
+paramInit = zeros(length(refParams),1);
 
 for i = 1:length(refParams) % Loop through parameters
 
